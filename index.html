@@ -1,0 +1,1548 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="COOKIT">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#FBF8F1">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="favicon.png">
+<title>COOKIT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Fraunces:opsz,wght,SOFT,WONK@9..144,400..900,0..100,0..1&display=swap">
+<style>
+/* base reset (the Claude viewer used to provide this) */
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+body{margin:0;font-size:14px;-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent}
+img{max-width:100%}
+[hidden]{display:none!important}
+
+/* Layout: a personal cookbook on a phone-first column; bold colour-blocked recipe cards in a staggered grid,
+   a floating pill nav, and a full-bleed recipe page with giant condensed type behind the plate. */
+:root{
+  --bg:#FBF8F1; --fg:#151513; --muted:#6C6A61; --line:#E4DFD2; --surface:#FFFFFF; --chip:#F1ECE0;
+  --nav:#151513; --nav-fg:#FBF8F1; --accent:#EE6A3A; --accent-ink:#FFF4EC; --est:#B5781D;
+  --k-tomato:#EE6A3A; --k-tomato-ink:#FFF4EC;
+  --k-oxblood:#4A1012; --k-oxblood-ink:#F59BE0;
+  --k-lime:#D7F26B; --k-lime-ink:#173F2F;
+  --k-mustard:#F7CF4A; --k-mustard-ink:#173F2F;
+  --k-pink:#F3A2DF; --k-pink-ink:#4A1012;
+  --k-forest:#2E6A53; --k-forest-ink:#E8F6C6;
+  --f-display:"Fraunces", "Cooper Black", Georgia, serif;
+  --f-cond:"Anton", "Impact", "Arial Narrow", sans-serif;
+  --f-body:"Bricolage Grotesque", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --r-card:22px; --r-pill:999px;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#161D1A; --fg:#EEF0E8; --muted:#9BA59E; --line:#2C3631; --surface:#1F2824; --chip:#26302B;
+  --nav:#0B0F0D; --nav-fg:#EEF0E8; --accent:#F07A4C; --accent-ink:#1A0E08; --est:#E2AE5B; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#161D1A; --fg:#EEF0E8; --muted:#9BA59E; --line:#2C3631; --surface:#1F2824; --chip:#26302B;
+  --nav:#0B0F0D; --nav-fg:#EEF0E8; --accent:#F07A4C; --accent-ink:#1A0E08; --est:#E2AE5B; color-scheme:dark }
+
+*{box-sizing:border-box}
+html,body{background:var(--bg);color:var(--fg)}
+body{font-family:var(--f-body);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:0;padding:0}
+:focus-visible{outline:2.5px solid var(--accent);outline-offset:3px;border-radius:8px}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:20px;padding-block:20px 140px}
+
+/* ---------- header ---------- */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:6px 4px}
+.brand{font-family:var(--f-cond);font-size:15px;letter-spacing:.14em;text-transform:uppercase}
+.brand b{color:var(--accent);font-weight:400}
+.pill-btn{border:1.5px solid var(--fg);border-radius:var(--r-pill);padding:9px 18px;font-weight:600;font-size:15px;white-space:nowrap}
+.pill-btn.solid{background:var(--fg);color:var(--bg)}
+.pill-btn.accent{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.pill-btn:disabled{opacity:.45;cursor:default}
+.titlebar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:28px 0 26px}
+.h-page{font-family:var(--f-body);font-weight:800;font-variation-settings:"opsz" 96;font-size:clamp(40px,10vw,64px);line-height:1;letter-spacing:-.035em;margin:0;text-wrap:balance;min-width:0}
+.titlebar .pill-btn{flex:none;padding:10px 22px;font-size:17px}
+.sub{color:var(--muted);margin:0 0 26px;font-size:17px}
+.h-sec{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:44px 0 16px}
+.h-sec h2{font-family:var(--f-display);font-weight:800;font-variation-settings:"SOFT" 100;font-size:28px;line-height:1;margin:0;letter-spacing:-.01em}
+.h-sec .lnk{font-weight:600;font-size:14px;color:var(--muted);text-decoration:underline;text-underline-offset:3px}
+.eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--muted)}
+
+/* ---------- hero ---------- */
+.hero{position:relative;border-radius:30px;overflow:hidden;background:var(--k-mustard);color:var(--k-mustard-ink);padding:28px 24px 24px;display:grid;grid-template-columns:1fr;gap:18px;cursor:pointer;text-align:left;width:100%}
+.hero .eyebrow{color:inherit;opacity:.8}
+.hero h3{font-family:var(--f-cond);font-weight:400;text-transform:uppercase;font-size:clamp(54px,12vw,120px);line-height:.86;margin:4px 0 0;letter-spacing:-.005em;text-wrap:balance}
+.hero .hero-img{aspect-ratio:4/3;border-radius:20px;overflow:hidden;max-width:100%}
+.hero .hero-img img{width:100%;height:100%;object-fit:cover;display:block}
+.hero .hero-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;background:color-mix(in srgb, var(--k-mustard-ink) 12%, transparent);border-radius:var(--r-pill);padding:10px 10px 10px 18px;font-weight:600;font-size:15px}
+.hero .go{width:40px;height:40px;border-radius:50%;background:var(--k-mustard-ink);color:var(--k-mustard);display:grid;place-items:center;flex:none}
+@media (min-width:820px){.hero{grid-template-columns:1.1fr 1fr;align-items:end;padding:40px}.hero .hero-img{grid-row:1/3;grid-column:2}}
+
+/* ---------- recipe cards ---------- */
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:stretch}
+@media (min-width:820px){.grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}}
+.card .name{margin-top:auto;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.card .mini{min-height:18px}
+.saved-grid > *,.shelf > *{height:100%}
+.card{--cbg:var(--k-tomato);--cfg:var(--k-tomato-ink);background:var(--cbg);color:var(--cfg);border-radius:var(--r-card);padding:12px 12px 14px;display:flex;flex-direction:column;gap:10px;text-align:left;width:100%;min-width:0;transition:transform .35s cubic-bezier(.2,.8,.2,1)}
+.card:hover .pic img{transform:scale(1.04)}
+.card .row{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;min-width:0}
+.card .row span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tpill{border:1.2px solid currentColor;border-radius:var(--r-pill);padding:0 8px;font-size:12px;line-height:20px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.card .pic{aspect-ratio:1/1.05;border-radius:14px;overflow:hidden;max-width:100%;background:#111}
+.card .pic img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .6s cubic-bezier(.2,.8,.2,1)}
+.card .name{font-family:var(--f-display);font-weight:900;font-variation-settings:"SOFT" 100,"WONK" 1;font-size:clamp(22px,5.4vw,34px);line-height:.95;letter-spacing:-.01em;margin:4px 2px 0;text-wrap:balance;overflow-wrap:anywhere}
+.card .mini{display:flex;gap:8px;align-items:center;font-size:13px;opacity:.85;margin:0 2px}
+.c-tomato{--cbg:var(--k-tomato);--cfg:var(--k-tomato-ink)} .c-oxblood{--cbg:var(--k-oxblood);--cfg:var(--k-oxblood-ink)}
+.c-lime{--cbg:var(--k-lime);--cfg:var(--k-lime-ink)} .c-mustard{--cbg:var(--k-mustard);--cfg:var(--k-mustard-ink)}
+.c-pink{--cbg:var(--k-pink);--cfg:var(--k-pink-ink)} .c-forest{--cbg:var(--k-forest);--cfg:var(--k-forest-ink)}
+
+/* plate motif when there is no photo */
+/* studio shot when there is no photo: a spotlit dish on a dark, card-tinted backdrop */
+.shot{width:100%;height:100%;display:grid;place-items:center;position:relative;overflow:hidden;
+  background:radial-gradient(120% 90% at 50% 30%, color-mix(in srgb,var(--cbg) 55%,#000) 0%, color-mix(in srgb,var(--cbg) 22%,#000) 55%, #0b0b0b 100%)}
+.shot::before{content:"";position:absolute;left:12%;right:12%;bottom:14%;height:16%;border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,.65),transparent);filter:blur(4px)}
+.shot::after{content:"";position:absolute;left:0;right:0;bottom:0;height:38%;background:linear-gradient(to top,rgba(0,0,0,.35),transparent)}
+.shot span{position:relative;z-index:1;font-size:clamp(64px,17vw,112px);line-height:1;transform:translateY(-4%) rotate(-6deg);filter:drop-shadow(0 18px 18px rgba(0,0,0,.55)) saturate(1.15);font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
+.d-photo .shot span{font-size:clamp(110px,30vw,190px)}
+.dot .e{font-size:20px;font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
+
+/* horizontal shelf */
+.shelf{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(200px,240px);gap:16px;overflow-x:auto;padding-bottom:8px;scroll-snap-type:x mandatory;margin-inline:-20px;padding-inline:20px;scrollbar-width:thin}
+.shelf > *{scroll-snap-align:start}
+
+/* idea cards */
+.ideas{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+.idea{border:2px dashed var(--line);border-radius:var(--r-card);padding:20px;text-align:left;display:flex;flex-direction:column;gap:10px;background:transparent;width:100%;min-width:0;transition:border-color .2s}
+.idea:hover{border-color:var(--fg)}
+.stamp{align-self:flex-start;font-family:var(--f-cond);letter-spacing:.08em;font-size:12px;text-transform:uppercase;border:1.5px solid var(--accent);color:var(--accent);padding:2px 8px;border-radius:6px;transform:rotate(-2deg)}
+.idea h3{font-family:var(--f-display);font-weight:800;font-variation-settings:"SOFT" 100;font-size:26px;line-height:1.02;margin:0;text-wrap:balance}
+.idea p{margin:0;color:var(--muted);font-size:15px}
+
+/* discovery */
+.disc{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.dcell{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:18px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.dcell h4{margin:0;font-family:var(--f-cond);font-weight:400;text-transform:uppercase;letter-spacing:.04em;font-size:20px}
+.dcell p{margin:0;color:var(--muted);font-size:14px}
+.dlist{display:flex;flex-direction:column}
+.dlist button{display:flex;align-items:center;gap:12px;padding:8px 0;border-top:1px solid var(--line);text-align:left;min-width:0}
+.dlist button:first-child{border-top:0}
+.dot{width:34px;height:34px;border-radius:10px;flex:none;background:var(--cbg);color:var(--cfg);display:grid;place-items:center;font-family:var(--f-display);font-weight:900;overflow:hidden}
+.dot img{width:100%;height:100%;object-fit:cover}
+.dlist .t{font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dlist .m{font-size:13px;color:var(--muted);white-space:nowrap}
+.pattern{font-family:var(--f-display);font-weight:600;font-size:22px;line-height:1.2;color:var(--fg);font-variation-settings:"SOFT" 100}
+
+/* chips */
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 24px}
+.chip{background:var(--chip);border-radius:var(--r-pill);padding:7px 14px;font-size:14px;font-weight:600;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+
+/* stars */
+.stars{position:relative;display:inline-block;letter-spacing:1px;line-height:1;white-space:nowrap}
+.stars::before{content:"★★★★★";opacity:.28}
+.stars::after{content:"★★★★★";position:absolute;left:0;top:0;width:calc(var(--r,0) * 20%);overflow:hidden}
+
+/* empty + notices */
+.empty{border:2px dashed var(--line);border-radius:28px;padding:36px 24px;text-align:center;display:grid;gap:12px;justify-items:center}
+.empty h3{font-family:var(--f-display);font-weight:900;font-variation-settings:"SOFT" 100,"WONK" 1;font-size:32px;margin:0;line-height:1}
+.empty p{margin:0;color:var(--muted);max-width:44ch}
+.notice{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--chip);border-radius:16px;padding:12px 16px;font-size:14px;margin:0 0 18px}
+
+/* ---------- bottom nav ---------- */
+.nav{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:20;display:flex;align-items:center;gap:6px;background:var(--nav);color:var(--nav-fg);border-radius:var(--r-pill);padding:6px;box-shadow:0 12px 40px rgba(0,0,0,.22);max-width:calc(100% - 24px)}
+.nav button{display:flex;flex-direction:column;align-items:center;gap:1px;padding:7px 10px;border-radius:var(--r-pill);font-size:11px;font-weight:600;opacity:.62;min-width:52px}
+.nav button svg{width:21px;height:21px}
+.nav button[aria-current="page"]{opacity:1;background:color-mix(in srgb,var(--nav-fg) 14%,transparent)}
+.nav .add{background:#FBF8F1;color:#151513;opacity:1;width:54px;height:54px;min-width:54px;padding:0;border-radius:50%;justify-content:center;margin:0 4px;box-shadow:0 4px 14px rgba(0,0,0,.25);transition:transform .2s}
+.nav .add:hover{transform:scale(1.06)}
+.nav .add svg{width:24px;height:24px}
+@media (max-width:420px){.nav button{min-width:44px;padding:7px 6px}.nav .add{width:50px;height:50px;min-width:50px;padding:0}}
+
+/* ---------- search ---------- */
+.sbox{display:flex;gap:10px;align-items:center;background:var(--surface);border:1.5px solid var(--fg);border-radius:var(--r-pill);padding:6px 6px 6px 20px;margin-bottom:14px}
+.sbox input{flex:1;min-width:0;border:0;background:transparent;font-size:18px;padding:8px 0;outline:none}
+.answer{font-family:var(--f-display);font-size:22px;line-height:1.3;font-variation-settings:"SOFT" 100;margin:6px 0 24px;max-width:46ch}
+
+/* ---------- sheet / detail overlays ---------- */
+.overlay{position:fixed;inset:0;z-index:40;background:var(--bg);overflow-y:auto;overscroll-behavior:contain;animation:rise .38s cubic-bezier(.2,.8,.2,1)}
+@keyframes rise{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.overlay{animation:none}.card,.card .pic img{transition:none}}
+.d-head{position:relative;background:var(--cbg);color:var(--cfg);overflow:hidden;padding:calc(16px + env(safe-area-inset-top,0px)) 20px 0}
+.d-bgword{position:relative;margin:12px auto 0;max-width:1000px;font-family:var(--f-cond);font-weight:400;text-transform:uppercase;font-size:clamp(56px,18vw,180px);line-height:.86;letter-spacing:-.005em;color:var(--cfg);text-align:center}
+.d-bgword span{display:block;width:max-content;max-width:none;margin:0 auto;white-space:nowrap;line-height:.86}
+.d-bar{position:relative;display:flex;justify-content:space-between;align-items:center;gap:8px;max-width:1000px;margin:0 auto}
+.round{width:44px;height:44px;border-radius:50%;background:var(--fg);color:var(--bg);display:grid;place-items:center;flex:none}
+.round svg{width:20px;height:20px}
+.d-head .round{background:var(--cfg);color:var(--cbg)}
+.d-head{padding-bottom:18px !important}
+/* the plate, cut out of the photo as a circle, floating in front of the big letters */
+.d-photo{position:relative;max-width:560px;margin:0 auto;min-height:clamp(270px,74vw,420px);display:grid;place-items:center}
+.plate-cut{position:relative;width:min(60vw,300px);aspect-ratio:1;border-radius:50%;overflow:hidden;box-shadow:0 30px 40px -18px rgba(0,0,0,.5),0 8px 14px -6px rgba(0,0,0,.25)}
+.plate-cut img{position:absolute;left:50%;top:50%;width:calc(100% / (2 * var(--r, .42)));max-width:none;height:auto;transform:translate(calc(-1 * var(--x, 50%)), calc(-1 * var(--y, 50%)))}
+.d-photo .dish{font-size:clamp(140px,36vw,230px);line-height:1;transform:rotate(-6deg);filter:drop-shadow(0 26px 22px rgba(0,0,0,.42)) saturate(1.1);font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif}
+
+/* recipe page hero: the photo full-width with the title over it (no photo: the card colour) */
+.d-hero{position:relative;min-height:clamp(340px,100vw,480px);display:flex;flex-direction:column;justify-content:space-between;background:var(--cbg);color:var(--cfg);overflow:hidden;padding:calc(16px + env(safe-area-inset-top,0px)) 18px 22px}
+.d-heroimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.d-hero.has-photo::after{content:"";position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.74),rgba(0,0,0,.08) 55%,rgba(0,0,0,0) 70%)}
+.d-hero .d-bar,.d-herotext{position:relative;z-index:2}
+.d-hero .d-bar{width:100%}
+.d-hero .round{background:var(--cfg);color:var(--cbg)}
+.d-hero.has-photo .round{background:rgba(255,255,255,.92);color:#151513}
+.d-herotext{max-width:1000px;width:100%;margin:0 auto}
+.d-chip{display:inline-block;background:var(--cfg);color:var(--cbg);border-radius:999px;padding:5px 12px;font-weight:700;font-size:13px}
+.d-hero.has-photo .d-chip{background:var(--cbg);color:var(--cfg)}
+.d-herotitle{font-family:var(--f-cond);font-weight:400;text-transform:uppercase;font-size:clamp(40px,11.5vw,88px);line-height:.92;margin:10px 0 0;text-wrap:balance;overflow-wrap:anywhere;color:var(--cfg)}
+.d-hero.has-photo .d-herotitle{color:#FFFFFF}
+.d-herotitle small{font-family:var(--f-display);text-transform:none;font-size:.36em;font-style:italic;vertical-align:middle}
+.d-heroemoji{position:absolute;right:-6%;top:12%;font-size:clamp(150px,44vw,260px);line-height:1;transform:rotate(-10deg);filter:drop-shadow(0 20px 18px rgba(0,0,0,.3));font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;pointer-events:none}
+
+/* serving scaler */
+.servings{display:flex;align-items:center;gap:8px}
+.servings button{width:28px;height:28px;border-radius:50%;border:1.5px solid var(--fg);display:grid;place-items:center;font-weight:700;line-height:1}
+.servings button:disabled{opacity:.3}
+.scaled{font-size:13px;color:var(--muted)}
+.d-body{max-width:760px;margin:0 auto;padding:28px 20px 120px;display:grid;gap:30px}
+.d-title{font-family:var(--f-cond);font-weight:400;text-transform:uppercase;font-size:clamp(44px,9vw,76px);line-height:.92;margin:6px 0 10px;text-wrap:balance;overflow-wrap:anywhere}
+.d-desc{font-size:18px;margin:0;max-width:60ch}
+.facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:520px){.facts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.fact{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 14px;min-width:0}
+.fact .k{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-weight:700}
+.fact .v{font-family:var(--f-display);font-weight:700;font-size:20px;font-variant-numeric:tabular-nums}
+.est{color:var(--est);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border:1px solid currentColor;border-radius:6px;padding:0 5px;margin-left:6px;vertical-align:2px;white-space:nowrap}
+.legend{font-size:13px;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+.sec h3{font-family:var(--f-cond);font-weight:400;text-transform:uppercase;letter-spacing:.03em;font-size:26px;margin:0 0 12px;display:flex;align-items:baseline;gap:10px}
+.sec h3 small{font-family:var(--f-body);font-size:13px;color:var(--muted);letter-spacing:0;text-transform:none}
+.ing-group{margin:14px 0 4px;font-weight:700}
+.ing{list-style:none;margin:0;padding:0}
+.ing li{padding:10px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px}
+.steps{list-style:none;counter-reset:s;margin:0;padding:0;display:grid;gap:18px}
+.steps li{counter-increment:s;display:grid;grid-template-columns:44px 1fr;gap:12px;max-width:64ch}
+.steps li::before{content:counter(s);font-family:var(--f-cond);font-size:28px;line-height:1;color:var(--accent)}
+.notes{display:grid;gap:12px}
+.note{border-radius:20px;padding:18px 20px;background:var(--surface);border:1px solid var(--line)}
+.note .eyebrow{margin-bottom:6px}
+.note p{margin:0;font-family:var(--f-display);font-size:19px;line-height:1.4;font-variation-settings:"SOFT" 100}
+.insight{background:var(--cbg);color:var(--cfg);border-radius:20px;padding:18px 20px;font-family:var(--f-display);font-size:20px;line-height:1.35;font-weight:600;font-variation-settings:"SOFT" 100}
+.timeline{list-style:none;margin:0;padding:0 0 0 18px;border-left:2px solid var(--line);display:grid;gap:18px}
+.timeline li{position:relative}
+.timeline li::before{content:"";position:absolute;left:-25px;top:6px;width:12px;height:12px;border-radius:50%;background:var(--accent)}
+.timeline .when{font-weight:700;font-variant-numeric:tabular-nums}
+.timeline q{display:block;color:var(--muted);margin-top:2px}
+.versions{display:grid;gap:10px}
+.ver{border:1px solid var(--line);border-radius:16px;padding:14px 16px}
+.ver ul{margin:6px 0 0;padding-left:18px}
+.tags{display:flex;flex-wrap:wrap;gap:8px}
+.tag{font-size:13px;border:1px solid var(--line);border-radius:var(--r-pill);padding:3px 11px;color:var(--muted)}
+.gallery{display:flex;gap:10px;overflow-x:auto}
+.gallery button{flex:none;width:84px;height:84px;border-radius:14px;overflow:hidden;border:2px solid transparent}
+.gallery button[aria-pressed="true"]{border-color:var(--fg)}
+.gallery img{width:100%;height:100%;object-fit:cover;display:block}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:18px;display:grid;gap:14px}
+.field{display:grid;gap:6px;min-width:0}
+.field label{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.field input[type=text],.field input[type=url],.field input[type=date],.field textarea{width:100%;background:var(--bg);border:1.5px solid var(--line);border-radius:14px;padding:12px 14px;font-size:16px}
+.field textarea{min-height:130px;resize:vertical}
+.field input:focus,.field textarea:focus{outline:none;border-color:var(--fg)}
+.rate-row{display:flex;align-items:center;gap:12px}
+.rate-row input{flex:1;accent-color:var(--accent)}
+.rate-row output{min-width:7ch;font-variant-numeric:tabular-nums;font-weight:700}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:520px){.two{grid-template-columns:1fr}}
+
+/* add sheet */
+.sheet{max-width:720px;margin:0 auto;padding:calc(18px + env(safe-area-inset-top,0px)) 20px 120px}
+.modes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:18px 0 22px}
+@media (max-width:520px){.modes{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.mode{border-radius:18px;padding:14px;text-align:left;background:var(--cbg);color:var(--cfg);display:grid;gap:4px;opacity:.55;transition:opacity .2s,transform .2s}
+.mode b{font-family:var(--f-display);font-weight:900;font-size:19px;line-height:1;font-variation-settings:"SOFT" 100}
+.mode span{font-size:12px;opacity:.85}
+.mode[aria-pressed="true"]{opacity:1;transform:translateY(-2px)}
+.drop{border:2px dashed var(--line);border-radius:20px;padding:22px;text-align:center;display:grid;gap:10px;justify-items:center;position:relative}
+.drop input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.thumbs{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.thumbs img{width:72px;height:72px;object-fit:cover;border-radius:12px}
+.thinking{display:flex;align-items:center;gap:12px;font-family:var(--f-display);font-size:20px}
+.spin{width:22px;height:22px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--accent);animation:sp 0.9s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.err{color:var(--accent);font-weight:600}
+.preview-tag{display:inline-block;background:var(--fg);color:var(--bg);font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:4px 10px;border-radius:var(--r-pill)}
+.muted{color:var(--muted)}
+.amp{font-family:var(--f-body);font-weight:700;font-variation-settings:normal}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- recipe generator ---------- */
+.gen{background:var(--k-forest);color:var(--k-forest-ink);border-radius:30px;padding:24px;display:grid;gap:16px}
+.gen h2{font-family:var(--f-cond);font-weight:400;text-transform:uppercase;font-size:clamp(40px,8vw,72px);line-height:.88;margin:0}
+.gen p{margin:0;opacity:.8;max-width:56ch}
+.gen textarea{width:100%;min-height:110px;resize:vertical;border-radius:18px;border:0;padding:14px 16px;font-size:16px;background:color-mix(in srgb,var(--k-forest-ink) 12%,var(--k-forest));color:var(--k-forest-ink)}
+.gen textarea::placeholder{color:color-mix(in srgb,var(--k-forest-ink) 55%,transparent)}
+.gen textarea:focus{outline:2px solid var(--k-lime)}
+.gen .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.gen .pill-btn{border-color:var(--k-forest-ink);color:var(--k-forest-ink)}
+.gen .pill-btn.go{background:var(--k-lime);border-color:var(--k-lime);color:var(--k-lime-ink)}
+.gen label.chk{display:flex;gap:8px;align-items:center;font-size:14px;font-weight:600}
+.gen label.chk input{accent-color:var(--k-lime);width:18px;height:18px}
+.gen .thumbs{justify-content:flex-start}
+.gen .err{color:var(--k-lime)}
+.gen .spin{border-color:color-mix(in srgb,var(--k-forest-ink) 25%,transparent);border-top-color:var(--k-lime)}
+
+/* ---------- saved from anywhere ---------- */
+.saved-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
+.saved{border:2px dashed var(--line);border-radius:var(--r-card);padding:12px;text-align:left;display:grid;grid-template-columns:84px 1fr;gap:14px;align-items:start;background:transparent;width:100%;min-width:0;transition:border-color .2s}
+.saved.noimg{grid-template-columns:1fr;padding:18px}
+.saved:hover{border-color:var(--fg)}
+.sthumb{width:84px;aspect-ratio:3/4;border-radius:12px;overflow:hidden;background:var(--chip)}
+.sthumb img{width:100%;height:100%;object-fit:cover;display:block}
+.sbody{display:flex;flex-direction:column;gap:7px;min-width:0}
+.saved h3{font-family:var(--f-display);font-weight:800;font-variation-settings:"SOFT" 100;font-size:22px;line-height:1.04;margin:0;text-wrap:balance;overflow-wrap:anywhere}
+.saved p{margin:0;color:var(--muted);font-size:14px;overflow-wrap:anywhere}
+.status{align-self:flex-start;font-size:12px;font-weight:700;background:var(--chip);border-radius:var(--r-pill);padding:3px 10px;white-space:nowrap}
+.stamp.alt{border-color:var(--fg);color:var(--fg)}
+.save-cta{display:grid;gap:16px;background:var(--fg);color:var(--bg);border-radius:28px;padding:24px;margin-bottom:28px}
+.save-cta h2{font-family:var(--f-cond);font-weight:400;text-transform:uppercase;font-size:clamp(34px,7vw,56px);line-height:.9;margin:0}
+.save-cta p{margin:0;opacity:.75;max-width:52ch}
+.save-cta .row{display:flex;gap:10px;flex-wrap:wrap}
+.save-cta .pill-btn{border-color:var(--bg)}
+.flow{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:.85}
+.flow i{font-style:normal;opacity:.5}
+.sources{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:4px 18px;margin:0 0 30px}
+.src{display:flex;justify-content:space-between;align-items:baseline;gap:8px;padding:10px 0;border-bottom:1px solid var(--line);text-align:left;min-width:0}
+.src b{font-family:var(--f-display);font-weight:800;font-size:20px;font-variation-settings:"SOFT" 100;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.src span{font-variant-numeric:tabular-nums;color:var(--muted);font-weight:700}
+.src[aria-pressed="true"] b{color:var(--accent)}
+.srcblock{border:1.5px solid var(--fg);border-radius:20px;padding:16px 18px;display:grid;gap:8px}
+.srcblock .who{font-family:var(--f-display);font-weight:800;font-size:22px;font-variation-settings:"SOFT" 100;overflow-wrap:anywhere}
+.srcblock a{color:var(--accent);font-weight:600;overflow-wrap:anywhere}
+.shots{display:flex;gap:8px;overflow-x:auto}
+.shots img{width:72px;height:96px;object-fit:cover;border-radius:10px;flex:none}
+.missing{background:var(--chip);border-radius:20px;padding:16px 18px;display:grid;gap:10px}
+.missing ul{margin:0;padding-left:18px}
+.statuses{display:flex;gap:8px;flex-wrap:wrap}
+.seg{display:inline-flex;background:var(--chip);border-radius:var(--r-pill);padding:4px;gap:4px;margin-bottom:6px}
+.seg button{padding:7px 16px;border-radius:var(--r-pill);font-weight:700;font-size:14px}
+.seg button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+.detected{font-size:13px;font-weight:700;color:var(--accent)}
+.dupe-opts{display:grid;gap:10px}
+.dupe-opts button{text-align:left;border:1.5px solid var(--line);border-radius:18px;padding:14px 16px;display:grid;gap:2px}
+.dupe-opts button:hover{border-color:var(--fg)}
+.dupe-opts b{font-size:17px}
+.dupe-opts span{color:var(--muted);font-size:14px}
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<script>
+(() => {
+"use strict";
+/* ================= constants ================= */
+const COLORS = ["tomato","oxblood","lime","mustard","pink","forest"];
+const FILTERS = ["All","Breakfast","Lunch","Dinner","Snack","Dessert","Drinks","Vegetarian","High protein","Quick","Meal prep"];
+const PLATFORMS = {tiktok:"TikTok", instagram:"Instagram", pinterest:"Pinterest", youtube:"YouTube", web:"Websites", book:"Books", screenshot:"Screenshots", other:"Elsewhere", claude:"Recipe generator", own:"My own recipes", ideas:"My own ideas"};
+const PLATFORM_ONE = {tiktok:"TikTok", instagram:"Instagram", pinterest:"Pinterest", youtube:"YouTube", web:"the web", book:"a book", screenshot:"a screenshot", other:"elsewhere", claude:"the recipe generator"};
+const STATUS = {idea:"💡 Idea", saved:"💾 Saved", want:"🧑‍🍳 Want to try", cooked:"🧑‍🍳 Cooked", favorite:"⭐ Favorite", notforme:"❌ Not for me"};
+
+const S = {
+  recipes: [], loaded: false, noStore: false, storeErr: "",
+  canWrite: true, db: null, assets: null, sample: null, imgOK: false,
+  view: "home", filter: "All", savedFilter: "all", sourceFilter: null, openId: null,
+  search: { q: "", busy: false, answer: "", ids: null, err: "" },
+  add: null, settings: null,
+  detail: { confirmDel: false, log: null, busy: false, msg: "", showOriginal: false }
+};
+try { const v = localStorage.getItem("prs-view"); if (v && ["home","recipes","favorites","search"].includes(v)) S.view = v; } catch (e) {}
+
+const app = document.getElementById("app");
+const titleBar = (t, btn="") => `<div class="titlebar"><h1 class="h-page">${t}</h1>${btn}</div>`;
+const nm = s => esc(s).replace(/&amp;/g, '<span class="amp">&amp;</span>');
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const today = () => { const d = new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); };
+const fmtDate = s => { if (!s) return ""; const d = new Date(s.length === 10 ? s+"T12:00:00" : s); return isNaN(d) ? s : d.toLocaleDateString(undefined,{month:"long",day:"numeric",year:"numeric"}); };
+const daysAgo = s => { if (!s) return Infinity; return Math.floor((Date.now() - new Date(s.length===10?s+"T12:00:00":s))/864e5); };
+const hash = s => { let h = 0; for (const c of String(s)) h = (h*31 + c.charCodeAt(0))|0; return Math.abs(h); };
+const colorOf = r => COLORS.includes(r.color) ? r.color : COLORS[hash(r.id || r.name) % COLORS.length];
+const BLOBURL = {};
+const img = id => BLOBURL[id] || "";
+const slug = s => String(s).toLowerCase().replace(/\s+/g,"-");
+const lastCooked = r => (r.history || []).map(h => h.date).filter(Boolean).sort().pop() || null;
+const starHTML = r => r ? `<span class="stars" style="--r:${Number(r)}" aria-label="${r} out of 5 stars"></span>` : "";
+const ingNames = r => (r.ingredients||[]).flatMap(g => (g.items||[]).map(i => i.text));
+const timeLabel = r => r.time?.total || r.time?.cook || "";
+
+/* kinds: recipe (mine, incl. my versions) · imported (saved from somewhere) · inspiration (ideas, partial saves) */
+const kindOf = r => r.kind === "idea" ? "inspiration" : (r.kind || "recipe");
+const isInspo = r => kindOf(r) === "inspiration";
+const isImported = r => kindOf(r) === "imported";
+const inCookbook = r => kindOf(r) === "recipe";
+const statusOf = r => r.status || (inCookbook(r) ? "cooked" : isInspo(r) ? "idea" : "saved");
+const isFav = r => !!r.favorite || r.status === "favorite";
+const coverOf = r => (r.photos||[])[0] || (r.source?.screenshots||[])[0] || null;
+
+function detectPlatform(url){
+  try {
+    const h = new URL(url.trim()).hostname.replace(/^www\.|^m\./,"");
+    if (/tiktok\.com$/.test(h)) return "tiktok";
+    if (/instagram\.com$|instagr\.am$/.test(h)) return "instagram";
+    if (/pinterest\.|pin\.it$/.test(h)) return "pinterest";
+    if (/youtube\.com$|youtu\.be$/.test(h)) return "youtube";
+    return "web";
+  } catch (e) { return null; }
+}
+function handleFromUrl(url){
+  try {
+    const u = new URL(url.trim()), p = u.pathname.split("/").filter(Boolean);
+    const at = p.find(x => x.startsWith("@")); if (at) return at;
+    if (/instagram\.com$/.test(u.hostname.replace(/^www\./,"")) && p[0] && !["p","reel","reels","tv","stories","explore"].includes(p[0])) return "@" + p[0];
+    return null;
+  } catch (e) { return null; }
+}
+const platformOf = r => {
+  const s = r.source; if (!s) return null;
+  if (s.platform && PLATFORM_ONE[s.platform]) return s.platform;
+  if (s.url) return detectPlatform(s.url) || "web";
+  return (s.name || s.creator || (s.screenshots||[]).length) ? "other" : null;
+};
+const sourceKey = r => platformOf(r) || (isInspo(r) ? "ideas" : "own");
+function stampText(r){
+  const p = platformOf(r);
+  if (isInspo(r)) return p ? "Inspiration · from " + PLATFORM_ONE[p] : "Inspiration";
+  if (p === "claude") return isImported(r) ? "Generated recipe" : "Inspired by a generated recipe";
+  if (isImported(r)) return p ? "Saved from " + PLATFORM_ONE[p] : "Saved";
+  return p ? "Inspired by " + (r.source.creator || PLATFORM_ONE[p]) : "";
+}
+
+const ICON = {
+  home:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>',
+  book:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H20v16H5.5A1.5 1.5 0 0 0 4 20.5z"/><path d="M4 20.5A1.5 1.5 0 0 0 5.5 22H20v-3"/></svg>',
+  bookmark:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-6-4.5L6 21z"/></svg>',
+  heart:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 5.6a5 5 0 0 0-7.1 0L12 7.3l-1.7-1.7a5 5 0 0 0-7.1 7.1L12 21.5l8.8-8.8a5 5 0 0 0 0-7.1z"/></svg>',
+  heartFill:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.8 5.6a5 5 0 0 0-7.1 0L12 7.3l-1.7-1.7a5 5 0 0 0-7.1 7.1L12 21.5l8.8-8.8a5 5 0 0 0 0-7.1z"/></svg>',
+  search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
+  plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>',
+  gear:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
+  close:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>'
+};
+
+/* ================= derived collections ================= */
+const cookbook = () => S.recipes.filter(inCookbook);
+const savedAll = () => S.recipes.filter(r => !inCookbook(r)).sort((a,b) => (b.createdAt||"").localeCompare(a.createdAt||""));
+const byCooked = () => cookbook().filter(lastCooked).sort((a,b) => lastCooked(b).localeCompare(lastCooked(a)));
+const byAdded = () => S.recipes.filter(r => statusOf(r) !== "notforme").sort((a,b) => (b.createdAt||"").localeCompare(a.createdAt||""));
+const favorites = () => cookbook().filter(r => isFav(r) || (r.rating||0) >= 4.5).sort((a,b) => (b.rating||0)-(a.rating||0));
+function matchesFilter(r, f){
+  if (f === "All") return true;
+  const cats = (r.categories||[]).map(c => c.toLowerCase()), tags = (r.tags||[]).map(t => t.toLowerCase());
+  return cats.includes(f.toLowerCase()) || tags.includes(slug(f));
+}
+function sourceCounts(){
+  const c = {}; S.recipes.forEach(r => { const k = sourceKey(r); c[k] = (c[k]||0)+1; });
+  const order = ["tiktok","instagram","pinterest","youtube","web","book","screenshot","other","claude","own","ideas"];
+  return order.filter(k => c[k]).map(k => [k, c[k]]);
+}
+function discovery(){
+  const rs = cookbook(), out = {};
+  out.makeAgain = rs.filter(r => (r.rating||0) >= 4 && lastCooked(r) && daysAgo(lastCooked(r)) >= 21).slice(0,4);
+  const top = favorites()[0];
+  if (top){
+    const tt = new Set(top.tags||[]);
+    out.likeBase = top;
+    out.like = rs.filter(r => r.id !== top.id).map(r => [r,(r.tags||[]).filter(t => tt.has(t)).length]).filter(x => x[1] >= 2).sort((a,b)=>b[1]-a[1]).map(x=>x[0]).slice(0,4);
+  }
+  out.evolution = rs.filter(r => (r.versions||[]).length >= 2).slice(0,4);
+  const counts = {};
+  rs.forEach(r => { const seen = new Set(); ingNames(r).forEach(t => { const w = t.toLowerCase().replace(/[\d½¼¾.,/()]+/g," ").replace(/\b(g|kg|ml|l|tbsp|tsp|cup|cups|pinch|clove|cloves|of|a|an|the|fresh|large|small|to|taste|or)\b/g," ").trim().split(/\s+/).slice(-1)[0]; if (w && w.length > 2 && !seen.has(w)){ seen.add(w); counts[w] = (counts[w]||0)+1; } }); });
+  out.staples = Object.entries(counts).filter(e => e[1] >= 2).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  if (rs.length >= 5){
+    const tc = {}; rs.forEach(r => new Set([...(r.tags||[]), r.cuisine ? slug(r.cuisine) : null].filter(Boolean)).forEach(t => tc[t]=(tc[t]||0)+1));
+    const best = Object.entries(tc).sort((a,b)=>b[1]-a[1])[0];
+    if (best && best[1] >= 3 && best[1]/rs.length >= .4) out.pattern = { tag: best[0], n: best[1], of: rs.length };
+  }
+  return out;
+}
+
+/* ================= components ================= */
+const EMOJI = [[/pasta|spaghetti|linguine|penne|tagliatelle|rigatoni|lasagn|carbonara|gnocchi/,"🍝"],[/ramen|noodle|pho|udon|soba|pad thai/,"🍜"],[/burger/,"🍔"],[/pizza/,"🍕"],[/hot ?dog/,"🌭"],[/taco|burrito|quesadilla|fajita/,"🌮"],[/sushi|poke|salmon|tuna/,"🍣"],[/curry|dal|daal|tikka|korma/,"🍛"],[/soup|stew|chili con|broth/,"🍲"],[/salad/,"🥗"],[/sandwich|toast|wrap|panini/,"🥪"],[/dumpling|gyoza/,"🥟"],[/pancake|crepe|waffle/,"🥞"],[/egg|omelet|frittata|shakshuka/,"🍳"],[/cake|cheesecake|tiramisu/,"🍰"],[/cookie|brownie/,"🍪"],[/ice cream|gelato/,"🍨"],[/smoothie|shake|juice/,"🥤"],[/cocktail|spritz|margarita|negroni/,"🍸"],[/coffee|latte|espresso/,"☕"],[/bread|focaccia|loaf/,"🥖"],[/chicken/,"🍗"],[/steak|beef/,"🥩"],[/rice|bowl/,"🍚"],[/peach/,"🍑"],[/tomato/,"🍅"],[/avocado/,"🥑"],[/oat|porridge|granola|yogurt/,"🥣"],[/fish|shrimp|prawn/,"🍤"]];
+const emojiOf = r => r.emoji || (EMOJI.find(([re]) => re.test(((r.name||"") + " " + (r.tags||[]).join(" ")).toLowerCase())) || [0,"🍽️"])[1];
+const bigWords = (r, n=3) => (r.name||"").replace(/&/g," ").split(/\s+/).filter(w => w.length > 2 && !/^(met|and|with|the|van|de|het|een|en|of)$/i.test(w)).slice(0,n);
+function plateCut(src, p, alt){
+  const ok = p && isFinite(p.x) && isFinite(p.y) && isFinite(p.r) && p.r > 5 && p.r <= 60;
+  const st = ok ? `--x:${p.x}%;--y:${p.y}%;--r:${p.r/100}` : "";
+  return `<div class="plate-cut" style="${st}"><img src="${esc(src)}" alt="${esc(alt)}"></div>`;
+}
+const shotHTML = r => `<div class="shot" aria-hidden="true"><span>${emojiOf(r)}</span></div>`;
+/* scale "200 g pasta", "1/2 tsp salt", "1½ cups" … by a factor */
+const FRAC = {"½":.5,"¼":.25,"¾":.75,"⅓":1/3,"⅔":2/3,"⅛":.125};
+function fmtQty(n, unit){
+  if (/^(g|gr|gram|grams|ml|millilit)/i.test(unit||"")) return String(n >= 20 ? Math.round(n/5)*5 : Math.round(n));
+  const w = Math.floor(n), f = n - w;
+  const opts = [[0,""],[.25,"¼"],[1/3,"⅓"],[.5,"½"],[2/3,"⅔"],[.75,"¾"],[1,""]];
+  const [v, g] = opts.reduce((a,b) => Math.abs(b[0]-f) < Math.abs(a[0]-f) ? b : a);
+  const whole = v === 1 ? w + 1 : w;
+  return ((whole ? String(whole) : "") + g) || "0";
+}
+function scaleText(t, k){
+  if (k === 1) return t;
+  const m = String(t).match(/^\s*(\d+\s+\d+\/\d+|\d+\/\d+|\d+[.,]\d+|\d*\s*[½¼¾⅓⅔⅛]|\d+)(\s*[-–]\s*(\d+[.,]?\d*))?\s*(\S*)/);
+  if (!m) return t;
+  const parse = q => { q = q.trim(); let n = 0;
+    const fr = q.match(/[½¼¾⅓⅔⅛]/); if (fr){ n += FRAC[fr[0]]; q = q.replace(fr[0],"").trim(); }
+    if (/^\d+\s+\d+\/\d+$/.test(q)){ const [w, f] = q.split(/\s+/); const [a,b] = f.split("/"); return n + +w + a/b; }
+    if (/^\d+\/\d+$/.test(q)){ const [a,b] = q.split("/"); return n + a/b; }
+    return n + (q ? parseFloat(q.replace(",",".")) : 0); };
+  const unit = m[4] || "";
+  let out = fmtQty(parse(m[1]) * k, unit);
+  if (m[3]) out += "–" + fmtQty(parseFloat(m[3].replace(",",".")) * k, unit);
+  return out + " " + String(t).slice(m[0].length - unit.length).trimStart();
+}
+const baseServ = r => { const n = parseInt(String(r.servings||"").match(/\d+/)?.[0]); return n > 0 ? n : null; };
+function picHTML(r){
+  const p = coverOf(r);
+  if (p) return `<img src="${img(p)}" alt="${esc(r.name)}" loading="lazy">`;
+  return shotHTML(r);
+}
+function cardHTML(r){
+  const label = r.example ? "Example" : (stampText(r) || (r.categories||[])[0] || r.cuisine || "Recipe");
+  const t = timeLabel(r);
+  return `<button class="card c-${colorOf(r)}" data-open="${esc(r.id)}">
+    <div class="row"><span>${esc(label)}</span>${t ? `<span class="tpill">${esc(t)}</span>` : ""}</div>
+    <div class="pic">${picHTML(r)}</div>
+    <div class="name">${nm(r.name)}</div>
+    <div class="mini">${r.rating ? starHTML(r.rating) : ""}</div>
+  </button>`;
+}
+function savedCardHTML(r){
+  const c = coverOf(r);
+  const line = isInspo(r) ? (r.idea?.whySaved || r.idea?.concept || r.description) : ([r.source?.creator, r.description].filter(Boolean).join(" · "));
+  return `<button class="saved ${c ? "" : "noimg"}" data-open="${esc(r.id)}">
+    ${c ? `<div class="sthumb"><img src="${img(c)}" alt="" loading="lazy"></div>` : ""}
+    <div class="sbody">
+      <span class="stamp ${isInspo(r) ? "alt" : ""}">${esc(stampText(r))}</span>
+      <h3>${nm(r.name)}</h3>
+      ${line ? `<p>${esc(line)}</p>` : ""}
+      <span class="status">${STATUS[statusOf(r)] || ""}${r.example ? " · Example" : ""}</span>
+    </div>
+  </button>`;
+}
+function rowHTML(r, meta){
+  const c = coverOf(r);
+  return `<button data-open="${esc(r.id)}"><span class="dot c-${colorOf(r)}">${c ? `<img src="${img(c)}" alt="">` : `<span class="e">${emojiOf(r)}</span>`}</span><span class="t">${esc(r.name)}</span><span class="m">${meta||""}</span></button>`;
+}
+function emptyHTML(title, body, act="add", label="Add a recipe"){
+  return `<div class="empty"><h3>${title}</h3><p>${body}</p>${act && S.canWrite ? `<button class="pill-btn accent" data-act="${act}">${label}</button>` : ""}</div>`;
+}
+const grid = list => list.length ? `<div class="grid">${list.map(cardHTML).join("")}</div>` : "";
+const savedGrid = list => `<div class="saved-grid">${list.map(savedCardHTML).join("")}</div>`;
+
+/* ================= views ================= */
+function header(){
+  return `<div class="top"><div class="brand">COOK<b>IT</b></div>
+    ${S.canWrite ? `<button class="pill-btn" data-act="add">Add or create</button>` : ""}</div>`;
+}
+function exampleNotice(){
+  if (!S.recipes.some(r => r.example) || !S.canWrite) return "";
+  return `<div class="notice"><span>Entries marked <b>Example</b> show how your cookbook will look. Remove them once you add your own.</span><button class="pill-btn" data-act="clear-examples">Remove examples</button></div>`;
+}
+function viewHome(){
+  const cooked = byCooked(), favs = favorites(), added = byAdded();
+  let h = titleBar("COOKIT", `<div style="display:flex;gap:10px;align-items:center"><button class="pill-btn" data-act="add">Add</button><button class="round" data-act="settings" aria-label="Settings" style="background:transparent;color:var(--fg);border:1.5px solid var(--fg)">${ICON.gear}</button></div>`) + exampleNotice()
+    + (S.sample ? "" : `<div class="notice"><span>Add your free Google AI key to create recipes, write up dishes and search in your own words.</span><button class="pill-btn" data-act="settings">Open Settings</button></div>`);
+  if (!S.recipes.length) return h + emptyHTML("Your cookbook starts here", "Add something you cooked, or create a new recipe from an idea, your ingredients or a photo.") + `<div class="h-sec"><h2>Add or create</h2></div>` + addPanelHTML();
+  if (cooked.length) h += `<div class="h-sec"><h2>Recently cooked</h2></div>` + grid(cooked.slice(0,6));
+  if (favs.length) h += `<div class="h-sec"><h2>Your favorites</h2><button class="lnk" data-view="favorites">See all</button></div><div class="shelf">${favs.slice(0,10).map(cardHTML).join("")}</div>`;
+  h += `<div class="h-sec"><h2>Add or create</h2></div>` + addPanelHTML();
+  if (added.length) h += `<div class="h-sec"><h2>Recently added</h2><button class="lnk" data-view="recipes">All recipes</button></div>` + grid(added.slice(0,6));
+  return h;
+}
+function discoveryHTML(){
+  const d = discovery(); const cells = [];
+  if (d.makeAgain.length) cells.push(`<div class="dcell"><h4>Make again</h4><p>Rated highly, not cooked in a while.</p><div class="dlist">${d.makeAgain.map(r => rowHTML(r, `${daysAgo(lastCooked(r))} days ago`)).join("")}</div></div>`);
+  if (d.like && d.like.length) cells.push(`<div class="dcell"><h4>You might like</h4><p>Close to ${esc(d.likeBase.name)}, one of your favorites.</p><div class="dlist">${d.like.map(r => rowHTML(r, r.rating ? r.rating+"★" : "")).join("")}</div></div>`);
+  if (d.evolution.length) cells.push(`<div class="dcell"><h4>Recipe evolution</h4><p>Dishes you keep refining.</p><div class="dlist">${d.evolution.map(r => rowHTML(r, `v${r.versions.length}`)).join("")}</div></div>`);
+  if (d.staples.length) cells.push(`<div class="dcell"><h4>Your staples</h4><p>Ingredients that show up again and again. Tap one to see those recipes.</p><div class="chips" style="margin:0">${d.staples.map(([w,n]) => `<button class="chip" data-q="${esc(w)}">${esc(w)} · ${n}</button>`).join("")}</div></div>`);
+  if (d.pattern) cells.push(`<div class="dcell"><h4>Your patterns</h4><p class="pattern">${d.pattern.n} of your ${d.pattern.of} recipes are ${esc(d.pattern.tag.replace(/-/g," "))}. Clearly a favorite direction.</p></div>`);
+  if (!cells.length) return "";
+  return `<div class="h-sec"><h2>Cook something</h2></div><div class="disc">${cells.join("")}</div>`;
+}
+function addPanelHTML(){
+  if (!S.canWrite) return "";
+  return `<div class="gen">
+    <h2>What's cooking?</h2>
+    <p>Create a new recipe from an idea, your ingredients or a photo, add something you cooked, or jot down an idea.</p>
+    <div class="row">${MODES.map(m => `<button class="pill-btn ${m.k === "generate" ? "go" : ""}" data-act="add-mode" data-m="${m.k}">${m.t}</button>`).join("")}</div>
+  </div>`;
+}
+function viewRecipes(){
+  const all = S.recipes.filter(r => statusOf(r) !== "notforme");
+  const list = all.filter(r => matchesFilter(r, S.filter)).sort((a,b) => (a.name||"").localeCompare(b.name||""));
+  const extra = [...new Set(cookbook().flatMap(r => r.tags||[]))].filter(t => !FILTERS.some(f => slug(f) === t)).sort().slice(0,14);
+  const chips = [...FILTERS, ...extra.map(t => t.replace(/-/g," "))];
+  const fbtn = `<button class="pill-btn ${S.filter !== "All" ? "solid" : ""}" data-act="toggle-filters" aria-expanded="${!!S.showFilters}">${S.filter !== "All" ? esc(S.filter) : "Filter"}</button>`;
+  return `${titleBar("My Recipes", fbtn)}${exampleNotice()}
+    <div class="chips" ${S.showFilters ? "" : "hidden"}>${chips.map(f => `<button class="chip" data-filter="${esc(f)}" aria-pressed="${S.filter===f}">${esc(f)}</button>`).join("")}</div>
+    ${list.length ? grid(list) : (all.length ? `<p class="muted">Nothing tagged “${esc(S.filter)}” yet.</p>` : emptyHTML("No recipes yet", "Everything you cook lands here, sorted and filterable."))}
+`;
+}
+function viewFavorites(){
+  const f = favorites();
+  return `${titleBar("Favorites")}
+    ${f.length ? grid(f) : emptyHTML("No favorites yet", "Rate a recipe 4.5 or 5 stars, or tap the heart on any recipe, and it appears here.", null)}`;
+}
+function viewSearch(){
+  const s = S.search;
+  const prompts = ["something quick","high protein dinner","what did I cook recently?","something with chickpeas","something healthy but comforting"];
+  let res = "";
+  if (s.busy) res = `<div class="thinking"><span class="spin"></span>Looking through your cookbook…</div>`;
+  else if (s.ids){
+    const list = s.ids.map(id => S.recipes.find(r => r.id === id)).filter(Boolean);
+    res = (s.answer ? `<p class="answer">${esc(s.answer)}</p>` : "") +
+      (list.length ? grid(list) : `<p class="muted">Nothing in your collection matches that yet.</p>`);
+  }
+  if (s.err) res = `<p class="err">${esc(s.err)}</p>` + res;
+  return `${titleBar("Search")}
+    <form class="sbox" id="sform" role="search"><label class="vh" for="sq">Search your recipes</label>
+      <input id="sq" type="search" placeholder="something with chickpeas…" value="${esc(s.q)}" autocomplete="off">
+      <button class="pill-btn solid" type="submit">Search</button></form>
+    <div class="chips">${prompts.map(p => `<button class="chip" data-q="${esc(p)}">${esc(p)}</button>`).join("")}</div>${res}`;
+}
+
+/* ================= detail ================= */
+function listSec(title, items, small=""){
+  return (items||[]).length ? `<section class="sec"><h3>${title}${small ? ` <small>${small}</small>` : ""}</h3><ul class="ing">${items.map(x => `<li>${esc(x)}</li>`).join("")}</ul></section>` : "";
+}
+function sourceBlock(r){
+  const s = r.source; if (!s) return "";
+  const p = platformOf(r);
+  const verb = inCookbook(r) ? "Inspired by" : "Saved from";
+  const shots = r._previewShots || (s.screenshots||[]).map(img);
+  if (p === "claude") return `<div class="srcblock"><div class="eyebrow">Created with the recipe generator${inCookbook(r) ? ", then cooked by you" : " · not cooked yet"}</div>
+    ${s.notes ? `<div><span class="muted">Made from:</span> ${esc(s.notes)}</div>` : ""}
+    ${shots.length ? `<div class="shots">${shots.map(u => `<img src="${esc(u)}" alt="Photo used for the recipe">`).join("")}</div>` : ""}</div>`;
+  return `<div class="srcblock">
+    <div class="eyebrow">${verb} ${esc(p ? PLATFORM_ONE[p] : "a source")}${s.name && p !== "tiktok" && p !== "instagram" ? " · " + esc(s.name) : ""}</div>
+    ${s.creator ? `<div class="who">${esc(s.creator)}</div>` : ""}
+    ${s.url ? `<a href="${esc(s.url)}" target="_blank" rel="noopener">Open the original ↗</a>` : ""}
+    ${shots.length ? `<div class="eyebrow" style="margin-top:4px">Source material</div><div class="shots">${shots.map(u => `<img src="${esc(u)}" alt="Saved screenshot">`).join("")}</div>` : ""}
+  </div>`;
+}
+function detailHTML(r, preview){
+  const c = colorOf(r), est = new Set(r.estimated||[]), D = S.detail, A = S.add;
+  const E = k => est.has(k) ? `<span class="est">est.</span>` : "";
+  const hist = [...(r.history||[])].sort((a,b) => (b.date||"").localeCompare(a.date||""));
+  const photos = r._previewPhotos || (r.photos||[]).map(img);
+  const heroSrc = photos[0] || (r._previewShots || (r.source?.screenshots||[]).map(img))[0];
+  const showOrig = !!(r.original && D.showOriginal && !preview);
+  const view = showOrig ? r.original : r;
+  const fact = (k, v, key) => `<div class="fact"><div class="k">${k}</div><div class="v">${v ? esc(v) + (showOrig ? "" : E(key)) : "<span class='muted'>—</span>"}</div></div>`;
+  const chip = [(r.categories||[])[0] || r.cuisine, view.time?.total].filter(Boolean).join(" · ");
+  let h = `<div class="d-hero c-${c} ${heroSrc ? "has-photo" : ""}">
+    ${heroSrc ? `<img class="d-heroimg" src="${esc(heroSrc)}" alt="${esc(r.name)}">` : `<span class="d-heroemoji" aria-hidden="true">${emojiOf(r)}</span>`}
+    <div class="d-bar">
+      <button class="round" data-act="${preview ? "back-to-form" : "close"}" aria-label="Back">${ICON.back}</button>
+      ${preview ? `<span class="preview-tag">Preview</span>` : (S.canWrite && inCookbook(r) ? `<button class="round" data-act="fav" aria-label="${isFav(r) ? "Remove from favorites" : "Add to favorites"}">${isFav(r) ? ICON.heartFill : ICON.heart}</button>` : "")}
+    </div>
+    <div class="d-herotext">${chip ? `<span class="d-chip">${esc(chip)}</span>` : ""}<h2 class="d-herotitle">${esc(r.name)}${r.original && inCookbook(r) ? ` <small>my version</small>` : ""}</h2></div>
+  </div><div class="d-body">`;
+  const stamp = stampText(r);
+  h += `<div>
+    ${stamp ? `<span class="stamp ${isInspo(r) ? "alt" : ""}">${esc(stamp)}</span>` : ""}
+    ${r.example ? `<span class="tag" style="margin-left:8px">Example</span>` : ""}
+    ${r.rating ? `<div style="font-size:20px;color:var(--accent)">${starHTML(r.rating)} <span class="muted" style="font-size:15px">${r.rating}/5</span></div>` : ""}
+    ${r.description ? `<p class="d-desc" style="margin-top:12px">${esc(r.description)}${E("description")}</p>` : ""}
+  </div>`;
+  if (!inCookbook(r) && !preview && S.canWrite){
+    const opts = isInspo(r) ? ["idea","want","cooked","notforme"] : ["saved","want","cooked","favorite","notforme"];
+    h += `<div class="statuses" role="group" aria-label="Status">${opts.map(k => `<button class="chip" data-status="${k}" aria-pressed="${statusOf(r)===k}">${STATUS[k]}</button>`).join("")}</div>`;
+  } else if (!inCookbook(r)) h += `<div><span class="status">${STATUS[statusOf(r)]}</span></div>`;
+  h += sourceBlock(r);
+  if ((r.missing||[]).length){
+    h += `<div class="missing"><div class="eyebrow">What's missing</div><p style="margin:0">I only used what was actually available. To complete this recipe, add any of these:</p><ul>${r.missing.map(m => `<li>${esc(m)}</li>`).join("")}</ul>
+      ${!preview && S.canWrite ? `<div><button class="pill-btn solid" data-act="more-info">Add screenshot, caption or transcript</button></div>` : ""}</div>`;
+  }
+  if (photos.length > 1 && !preview) h += `<div class="gallery">${photos.map((p,i) => `<button ${!S.canWrite ? "disabled" : `data-cover="${i}"`} aria-pressed="${i===0}" aria-label="${i===0 ? "Cover photo" : "Make this the cover photo"}"><img src="${esc(p)}" alt=""></button>`).join("")}</div>`;
+
+  if (isInspo(r)){
+    const I = r.idea || {};
+    if (I.concept) h += `<div class="insight c-${c}">${esc(I.concept)}</div>`;
+    if (I.whySaved) h += `<section class="sec"><h3>Why I saved it</h3><p style="margin:0;max-width:64ch">${esc(I.whySaved)}</p></section>`;
+    h += listSec("Possible ingredients", I.possibleIngredients);
+    if (I.possiblePrep) h += `<section class="sec"><h3>Possible preparation</h3><p style="margin:0;max-width:64ch">${esc(I.possiblePrep)}</p></section>`;
+    if (I.why) h += `<section class="sec"><h3>Why it could work</h3><p style="margin:0;max-width:64ch">${esc(I.why)}</p></section>`;
+    h += listSec("Variations", I.variations) + listSec("Still to decide", I.undecided);
+  } else {
+    if (r.original && inCookbook(r) && !preview) h += `<div><div class="seg" role="group" aria-label="Which recipe"><button data-act="show-mine" aria-pressed="${!showOrig}">My version</button><button data-act="show-orig" aria-pressed="${showOrig}">Original</button></div></div>`;
+    h += `<div class="facts">${fact("Prep", view.time?.prep, "time.prep")}${fact("Cook", view.time?.cook, "time.cook")}${fact("Total", view.time?.total, "time.total")}${(() => { const b = baseServ(view); if (!b || showOrig || preview) return fact("Serves", view.servings, "servings"); const n = D.serv || b;
+      return `<div class="fact"><div class="k">Serves${E("servings")}</div><div class="v servings"><button data-act="serv-down" aria-label="Fewer servings" ${n <= 1 ? "disabled" : ""}>−</button><span>${n}</span><button data-act="serv-up" aria-label="More servings">+</button></div></div>`; })()}</div>`;
+    if (r.insight && !showOrig) h += `<div class="insight c-${c}">${esc(r.insight)}</div>`;
+    const anyEst = est.size || (view.ingredients||[]).some(g => (g.items||[]).some(i => i.est)) || (view.steps||[]).some(s => s.est);
+    if (anyEst) h += `<div class="legend"><span><span class="est" style="margin:0">est.</span> estimated, reconstructed or unclear in the source — not confirmed</span></div>`;
+    const ingSmall = showOrig ? "as in the source" : (isImported(r) ? "extracted from the source" : "");
+    const b0 = baseServ(view), k = (!showOrig && !preview && b0 && D.serv) ? D.serv / b0 : 1;
+    if ((view.ingredients||[]).length) h += `<section class="sec"><h3>Ingredients${ingSmall ? ` <small>${ingSmall}</small>` : ""}${k !== 1 ? ` <small class="scaled">scaled for ${D.serv}</small>` : ""}</h3>${view.ingredients.map(g => `${g.group ? `<div class="ing-group">${esc(g.group)}</div>` : ""}<ul class="ing">${(g.items||[]).map(i => `<li><span>${esc(scaleText(i.text, k))}</span>${i.est ? `<span class="est">est.</span>` : ""}</li>`).join("")}</ul>`).join("")}</section>`;
+    if ((view.steps||[]).length) h += `<section class="sec"><h3>${isImported(r) ? "Instructions" : "Method"}${isImported(r) && view.steps.some(s => s.est) ? " <small>reconstructed from what's available</small>" : ""}</h3><ol class="steps">${view.steps.map(s => `<li><span>${esc(s.text)}${s.est ? `<span class="est">est.</span>` : ""}</span></li>`).join("")}</ol></section>`;
+    const srcNotes = showOrig ? r.original.notes : r.source?.notes;
+    if (srcNotes && (isImported(r) || showOrig)) h += `<section class="sec"><h3>Creator's notes</h3><div class="note"><p>${esc(srcNotes)}</p></div></section>`;
+    if (!showOrig){
+      h += listSec("What I changed", r.changes) + listSec("Substitutions", r.substitutions);
+      const notes = [["What I thought", r.thoughts], ["Next time", r.nextTime], ["My version", r.myVersion]].filter(n => n[1]);
+      if (notes.length) h += `<section class="sec"><h3>My notes</h3><div class="notes">${notes.map(([k,v]) => `<div class="note"><div class="eyebrow">${k}</div><p>${esc(v)}</p></div>`).join("")}</div></section>`;
+      if (r.idea && r.idea.concept) h += `<section class="sec"><h3>Started as an idea</h3><div class="note"><p>${esc(r.idea.concept)}</p></div></section>`;
+      if ((r.versions||[]).length) h += `<section class="sec"><h3>Recipe evolution</h3><div class="versions">${[...r.versions].reverse().map(v => `<div class="ver"><b>Version ${esc(v.n)}</b> <span class="muted">· ${esc(fmtDate(v.date))}</span>${v.summary ? `<div>${esc(v.summary)}</div>` : ""}${(v.changes||[]).length ? `<ul>${v.changes.map(x => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}</div>`).join("")}</div></section>`;
+      if (hist.length) h += `<section class="sec"><h3>Cooking history <small>${hist.length}× cooked</small></h3><ul class="timeline">${hist.map(x => `<li><div class="when">${esc(fmtDate(x.date))} ${x.rating ? `<span style="color:var(--accent)">${starHTML(x.rating)}</span> ${x.rating}/5` : ""}</div>${x.note ? `<q>${esc(x.note)}</q>` : ""}</li>`).join("")}</ul></section>`;
+    }
+  }
+  if ((r.tags||[]).length) h += `<div class="tags">${r.tags.map(t => `<span class="tag">${esc(t)}</span>`).join("")}</div>`;
+
+  if (preview){
+    if (A.mode === "generate") h += `<div class="actions"><button class="pill-btn accent" data-act="save-draft">Save recipe</button><button class="pill-btn" data-act="gen-again">Try another</button><button class="pill-btn" data-act="back-to-form">Back to edit</button><button class="pill-btn" data-act="close-add">Discard</button></div>${A.err ? `<p class="err" style="margin:0">${esc(A.err)}</p>` : ""}`;
+    else h += `<div class="actions"><button class="pill-btn accent" data-act="save-draft">${A.matchId && A.dupeAction !== "keep" ? "Save changes" : "Save"}</button><button class="pill-btn" data-act="back-to-form">Back to edit</button></div>${A.err ? `<p class="err" style="margin:0">${esc(A.err)}</p>` : ""}`;
+  } else if (S.canWrite){
+    if (D.log){
+      h += `<form class="panel" id="logform"><div class="eyebrow">Log a cook</div>
+        <div class="two"><div class="field"><label for="lg-date">Date</label><input type="date" id="lg-date" value="${esc(D.log.date)}"></div>
+        <div class="field"><label for="lg-rate">Rating</label><div class="rate-row"><input type="range" id="lg-rate" min="0" max="5" step="0.5" value="${D.log.rating}"><output id="lg-out">${D.log.rating ? D.log.rating+" / 5" : "No rating"}</output></div></div></div>
+        <div class="field"><label for="lg-note">How did it go?</label><textarea id="lg-note" placeholder="Added more chili this time…">${esc(D.log.note)}</textarea></div>
+        <p class="muted" style="margin:0;font-size:14px">Changed the recipe itself? Use “Update with a note” instead, so the change becomes a new version.</p>
+        <div class="actions"><button class="pill-btn accent" type="submit">Save cook</button><button class="pill-btn" type="button" data-act="log-cancel">Cancel</button></div></form>`;
+    } else {
+      const primary = isImported(r) ? `<button class="pill-btn accent" data-act="my-version">I cooked this · make my version</button>`
+        : isInspo(r) ? `<button class="pill-btn accent" data-act="made-it">I made it</button>`
+        : `<button class="pill-btn accent" data-act="log">I made this again</button>`;
+      const needsEst = !isInspo(r) && ((r.ingredients||[]).length || (r.steps||[]).length) && (!r.time?.total || !r.servings || (r.ingredients||[]).some(g => (g.items||[]).some(i => !/^\s*[\d½¼¾⅓⅔⅛]/.test(i.text) && !/\b(salt|pepper|water|to taste|for serving|optional)\b/i.test(i.text))));
+      if (needsEst && S.sample) h += `<div class="panel" style="gap:10px"><div class="eyebrow">Missing amounts or times</div><p style="margin:0">Let the AI estimate the prep and cook time, servings and the grams or spoons you need. Everything it adds is marked <span class="est" style="margin:0">est.</span></p>
+        <div>${D.estBusy ? `<div class="thinking"><span class="spin"></span>Estimating…</div>` : `<button class="pill-btn solid" data-act="estimate">Estimate time & quantities</button>`}</div></div>`;
+      if ((r.photos||[]).length && S.sample && S.imgOK) h += `<div class="actions" style="margin-top:-6px">${D.plateBusy ? `<div class="thinking"><span class="spin"></span>Finding the plate…</div>` : `<button class="pill-btn" data-act="find-plate">${r.plate ? "Re-centre the plate" : "Cut out the plate"}</button>`}</div>`;
+      h += `<div class="actions">${primary}
+        ${inCookbook(r) ? `<button class="pill-btn" data-act="update">Update with a note</button>` : (r.missing||[]).length ? `<button class="pill-btn" data-act="more-info">Add more info</button>` : ""}
+        ${S.assets && inCookbook(r) ? `<label class="pill-btn" style="position:relative;cursor:pointer">Add photo<input type="file" accept="image/*" multiple id="addphoto" style="position:absolute;inset:0;opacity:0;cursor:pointer"></label>` : ""}
+        ${D.confirmDel ? `<button class="pill-btn solid" data-act="del-yes">Delete for good</button><button class="pill-btn" data-act="del-no">Keep it</button>` : `<button class="pill-btn" data-act="del">Delete</button>`}
+      </div>`;
+    }
+    if (D.msg) h += `<p class="${D.err ? "err" : "muted"}" style="margin:0">${esc(D.msg)}</p>`;
+    if (D.busy) h += `<div class="thinking"><span class="spin"></span>Saving…</div>`;
+  }
+  const meta = [];
+  if (r.createdAt) meta.push((inCookbook(r) ? "Added " : "Saved ") + fmtDate(r.createdAt));
+  if (r.updatedAt && r.updatedAt !== r.createdAt) meta.push("updated " + fmtDate(r.updatedAt));
+  if (meta.length && !preview) h += `<p class="muted" style="font-size:13px;margin:0">${esc(meta.join(", "))}</p>`;
+  return h + `</div>`;
+}
+
+/* ================= add sheet ================= */
+const MODES = [
+  {k:"generate", t:"Create a recipe", s:"From an idea, ingredients or a photo", c:"forest"},
+  {k:"cooked", t:"I cooked this", s:"Photo + a few words", c:"tomato"},
+  {k:"idea", t:"Idea", s:"Something to try later", c:"pink"}
+];
+function newAdd(mode="cooked", matchId=null, intent=null){
+  return { mode, matchId, intent, dupeAction: null, files: [], urls: [], text: "", url: "", why: "", taste: true, status: "form", err: "", draft: null };
+}
+function addHTML(){
+  const A = S.add;
+  if (A.status === "preview" && A.draft) return detailHTML(A.draft, true);
+  if (A.status === "dupe") return dupeHTML();
+  const target = A.matchId ? S.recipes.find(r => r.id === A.matchId) : null;
+  const imp = A.mode === "import";
+  const ph = {
+    cooked: "Made this for dinner. Chicken, rice, avocado, cucumber, spicy yogurt sauce. Really good, probably 4.5/5.",
+    import: "Paste the caption, the recipe text or the video transcript here.",
+    idea: "I want to make a bowl with salmon, avocado and mango.",
+    generate: "Chickpeas, spinach, feta and lemon. Something warm for a weeknight. Or: a mix of my burrata pasta and the chicken bowl."
+  }[A.mode];
+  const gen = A.mode === "generate";
+  const titles = {"made-it":"You made it","my-version":"Make it yours","more-info":"Add more to " + (target?.name || "this"),"update":"Update " + (target?.name || "")};
+  const subs = {
+    "made-it":"Tell me how it went and what you actually used. The idea becomes a full recipe, and the original concept is kept.",
+    "my-version":"What did you change? Substitutions, your quantities, your rating, what you'd do next time. The original stays attached, so you can always compare.",
+    "more-info":"Add a screenshot, the caption, the ingredients or the transcript. I'll combine it with what's already saved.",
+    "update":"Describe what changed or how it went. Everything already saved stays; changes become a new version."
+  };
+  let h = `<div class="sheet">
+    <div class="d-bar" style="max-width:none"><button class="round" data-act="close-add" aria-label="Close">${ICON.close}</button></div>
+    <h1 class="h-page" style="font-size:clamp(40px,8vw,68px)">${esc(A.intent ? titles[A.intent] : "Add or create")}</h1>`;
+  if (A.intent) h += `<p class="sub">${subs[A.intent]}</p>`;
+  else h += `<div class="modes" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))" role="group" aria-label="What are you adding?">${MODES.map(m => `<button class="mode c-${m.c}" data-mode="${m.k}" aria-pressed="${A.mode===m.k}"><b>${m.t}</b><span>${m.s}</span></button>`).join("")}</div>`;
+  h += `<div class="panel">`;
+  if (imp){
+    const p = A.url ? detectPlatform(A.url) : null, hd = A.url ? handleFromUrl(A.url) : null;
+    h += `<div class="field"><label for="add-url">Link</label><input type="url" id="add-url" placeholder="https://www.tiktok.com/@…" value="${esc(A.url)}" inputmode="url">
+      <span class="detected" id="add-detected">${p ? esc((PLATFORMS[p] === "Websites" ? "Website" : PLATFORMS[p]) + (hd ? " · " + hd : "")) : ""}</span></div>`;
+  }
+  if (gen ? S.imgOK : (S.assets && (A.mode !== "idea" || A.files.length))){
+    const what = imp ? "screenshots" : "photos";
+    h += `<div class="drop" id="drop-shots">${A.files.length ? `<div class="thumbs">${A.urls.map(u => `<img src="${u}" alt="">`).join("")}</div><span class="muted">${A.files.length} ${A.files.length>1 ? what : what.slice(0,-1)} · tap to change</span>` : `<b>Add ${gen ? "a photo (optional)" : what}</b><span class="muted">${gen ? "A dish to recreate, or the ingredients you have." : imp ? "A screenshot of the post, the caption or the ingredients. Kept as source material." : "Your own photos. The first one becomes the cover."}</span>`}<input type="file" id="add-files" accept="image/*" multiple aria-label="Add ${what}"></div>`;
+  }
+  h += `<div class="field"><label for="add-text">${gen ? "What should it be based on?" : imp ? "Copied text (optional)" : A.mode === "idea" ? "The idea" : "Tell me about it"}</label><textarea id="add-text" placeholder="${esc(ph)}">${esc(A.text)}</textarea></div>`;
+  if (gen && S.recipes.some(r => inCookbook(r) && r.rating)) h += `<label style="display:flex;gap:8px;align-items:center;font-weight:600;font-size:15px"><input type="checkbox" id="add-taste" ${A.taste ? "checked" : ""} style="width:18px;height:18px;accent-color:var(--accent)">Match my taste (uses recipes I rated 4★ and up)</label>`;
+  if (imp && !A.intent) h += `<div class="field"><label for="add-why">Why you're saving it (optional)</label><input type="text" id="add-why" placeholder="Potential summer dinner idea" value="${esc(A.why)}"></div>`;
+  if (A.status === "thinking") h += `<div class="thinking"><span class="spin"></span>${esc(A.progress || "Writing it up…")}</div>`;
+  else h += `<div class="actions"><button class="pill-btn accent" data-act="process" ${gen && !S.sample ? "disabled" : ""}>${gen ? "Create recipe" : S.sample ? (imp ? "Import" : "Write it up") : "Save"}</button><button class="pill-btn" data-act="close-add">Cancel</button></div>`;
+  if (A.err) h += `<p class="err" style="margin:0">${esc(A.err)}</p>`;
+  if (!S.sample) h += `<p class="muted" style="margin:0;font-size:14px">${gen ? "Creating recipes needs your free Google AI key. Add it in Settings (the gear on Home)." : "No AI key yet, so what you add is saved as written. Add your free Google AI key in Settings (the gear on Home) to have it written up."}</p>`;
+  h += `</div><p class="muted" style="font-size:14px">${gen ? "The AI writes a full recipe with quantities and steps. You see it before anything is saved, and it's labelled as a generated recipe until you cook it." : imp ? "The app can't open links itself, so a link alone gives the platform and sometimes the creator. Add a screenshot or the caption for the recipe. Nothing missing gets invented; it's listed instead." : "I keep what you tell me separate from anything I estimate. Estimates are labelled."}</p></div>`;
+  return h;
+}
+function dupeHTML(){
+  const A = S.add, ex = S.recipes.find(r => r.id === A.dupeId);
+  return `<div class="sheet">
+    <div class="d-bar" style="max-width:none"><button class="round" data-act="close-add" aria-label="Close">${ICON.close}</button></div>
+    <h1 class="h-page" style="font-size:clamp(40px,8vw,68px)">You may already have this recipe</h1>
+    <p class="sub">It looks like <b>${esc(ex?.name)}</b>, already in your ${ex && inCookbook(ex) ? "recipes" : "saved items"}.</p>
+    <div style="max-width:320px;margin-bottom:24px">${ex ? (inCookbook(ex) ? cardHTML(ex) : savedCardHTML(ex)) : ""}</div>
+    <div class="dupe-opts">
+      <button data-dupe="merge"><b>Merge</b><span>Add the new information to ${esc(ex?.name)}. Nothing already saved is lost.</span></button>
+      <button data-dupe="keep"><b>Keep both</b><span>Save this as a separate entry.</span></button>
+      <button data-dupe="replace"><b>Replace the old version</b><span>Swap the recipe content for this one. Your photos and cooking history stay.</span></button>
+      <button data-act="close-add"><b>Cancel</b><span>Don't save anything.</span></button>
+    </div></div>`;
+}
+
+/* ================= render ================= */
+let lastOverlay = null;
+function render(){
+  const focusId = document.activeElement && document.activeElement.id;
+  let selStart = null; try { selStart = focusId ? document.activeElement.selectionStart : null; } catch(e){}
+  let main;
+  if (S.noStore) main = titleBar("COOKIT") + `<div class="empty"><h3>Can't open your cookbook here</h3><p>${esc(S.storeErr || "This view can't reach the cookbook's storage. Open the page signed in to claude.ai.")}</p></div>`;
+  else if (!S.loaded) main = titleBar("COOKIT") + `<div class="thinking"><span class="spin"></span>Opening your cookbook…</div>`;
+  else main = ({home:viewHome, recipes:viewRecipes, favorites:viewFavorites, search:viewSearch}[S.view] || viewHome)();
+  const tabs = [["home","Home",ICON.home],["recipes","Recipes",ICON.book],["favorites","Favorites",ICON.heart],["search","Search",ICON.search]];
+  const tabBtn = ([k,l,i]) => `<button data-view="${k}" ${S.view===k ? 'aria-current="page"' : ""}>${i}<span>${l}</span></button>`;
+  let overlay = "";
+  if (S.settings) overlay = `<div class="overlay" id="ov" role="dialog" aria-modal="true" aria-label="Settings">${settingsHTML()}</div>`;
+  else if (S.add) overlay = `<div class="overlay" id="ov" role="dialog" aria-modal="true" aria-label="Add">${addHTML()}</div>`;
+  else if (S.openId){ const r = S.recipes.find(x => x.id === S.openId); if (r) overlay = `<div class="overlay" id="ov" role="dialog" aria-modal="true" aria-label="${esc(r.name)}">${detailHTML(r,false)}</div>`; else S.openId = null; }
+  const ovKey = S.settings ? "settings" : S.add ? "add:"+S.add.status : (S.openId ? S.openId + ":" + S.detail.showOriginal : "");
+  const prevScroll = document.getElementById("ov")?.scrollTop || 0;
+  app.innerHTML = `<div class="wrap">${main}</div>
+    <nav class="nav" aria-label="Main">${tabs.slice(0,2).map(tabBtn).join("")}${S.canWrite ? `<button class="add" data-act="add" aria-label="Add or create a recipe">${ICON.plus}</button>` : ""}${tabs.slice(2).map(tabBtn).join("")}</nav>${overlay}`;
+  document.body.style.overflow = overlay ? "hidden" : "";
+  const ov = document.getElementById("ov");
+  if (ov && ovKey === lastOverlay) ov.scrollTop = prevScroll;
+  fitBgWords();
+  lastOverlay = overlay ? ovKey : null;
+  if (focusId){ const el = document.getElementById(focusId); if (el){ el.focus({preventScroll:true}); try { if (selStart != null) el.setSelectionRange(selStart, selStart); } catch(e){} } }
+}
+
+/* ================= persistence ================= */
+function stripLocal(o){ const c = JSON.parse(JSON.stringify(o)); delete c.id; delete c._previewPhotos; delete c._previewShots; return c; }
+async function saveDoc(id, data){
+  data.updatedAt = new Date().toISOString();
+  await S.db.collection("recipes").doc(id).set(stripLocal(data));
+}
+async function shrink(file){
+  try {
+    const bmp = await createImageBitmap(file);
+    const scale = Math.min(1, 1800 / Math.max(bmp.width, bmp.height));
+    const cv = document.createElement("canvas"); cv.width = Math.round(bmp.width*scale); cv.height = Math.round(bmp.height*scale);
+    cv.getContext("2d").drawImage(bmp, 0, 0, cv.width, cv.height);
+    return await new Promise(res => cv.toBlob(b => res(b || file), "image/jpeg", 0.86));
+  } catch (e) { return file; }
+}
+async function uploadPhotos(files){
+  const ids = [];
+  for (const f of files){ const b = await shrink(f); const r = await S.assets.upload(b, {type: b.type && b.type.startsWith("image/") ? b.type : "image/jpeg"}); ids.push(r.id); }
+  return ids;
+}
+
+/* ================= AI: structure an entry ================= */
+const SCHEMA = `{
+  "kind": "recipe" (they cooked it / their own) | "imported" (a recipe saved from somewhere, not yet cooked) | "inspiration" (a photo of a dish, plating idea, flavour combination, restaurant dish, technique or concept — not a full recipe; also their own uncooked ideas),
+  "name": string,
+  "description": string (one or two plain sentences),
+  "categories": array of any of ["Breakfast","Lunch","Dinner","Snack","Dessert","Drinks"],
+  "cuisine": string or null,
+  "time": {"prep": string|null, "cook": string|null, "total": string|null}  (like "15 min"),
+  "servings": string or null,
+  "estimated": array naming every field you inferred rather than were given, from: "name","time.prep","time.cook","time.total","servings","description",
+  "ingredients": [{"group": string ("" if none), "items": [{"text": "200 g pasta", "est": boolean}]}],
+  "steps": [{"text": string, "est": boolean}],
+  "rating": number 1-5 in halves, or null,
+  "thoughts": string or null (WHAT I THOUGHT, from their words),
+  "nextTime": string or null (NEXT TIME),
+  "myVersion": string or null (how their version differs from the traditional or source recipe),
+  "changes": [string] (what they changed vs the source; empty if none),
+  "substitutions": [string] (ingredient swaps, e.g. "Greek yogurt instead of cream"),
+  "source": null, or {"platform": "tiktok"|"instagram"|"pinterest"|"youtube"|"web"|"book"|"screenshot"|"other", "name": string|null (site, book or account name), "creator": string|null (e.g. "@handle", only if visible or given), "url": string|null, "notes": string|null (important details or techniques the creator mentions)},
+  "missing": [string] (for saved recipes: what is needed to complete it, e.g. "The caption", "A screenshot of the ingredients", "The video transcript", "Quantities"; empty when complete),
+  "tags": 3-8 lowercase-hyphenated useful tags (quick, high-protein, vegetarian, meal-prep, pasta, chicken, comfort-food, summer, spicy …); use "vegetarian","high-protein","quick" (≤30 min),"meal-prep" only when true,
+  "emoji": one food emoji that best pictures the finished dish (e.g. "🍝"),
+  "plate": null, or, when photos are attached, the circle around the main plate or bowl in the FIRST photo: {"x": centre as % of image width, "y": centre as % of image height, "r": radius as % of image width},
+  "idea": null, or for inspiration {"concept": string, "whySaved": string|null, "possibleIngredients": [string], "possiblePrep": string|null, "why": string|null (why the combination could work), "variations": [string], "undecided": [string]}
+}`;
+const RULES = `Rules:
+- Known information = what the person wrote, what is visible in the images, or what the pasted source text says. Everything else is an estimate.
+- Never invent ingredients or techniques. Never present an estimate as fact.
+- When a quantity is not given, estimate a realistic metric quantity for the servings (grams for solids, ml for liquids, or tbsp/tsp/pieces where that's how cooks measure) and set "est": true on that item. Leave salt/pepper "to taste". Clearly implied extras (salt, water) get "est": true. Text that is hard to read in a screenshot gets "est": true.
+- When times or servings are not given, estimate them from the method and list each one in "estimated".
+- Steps you reconstruct get "est": true; steps stated in the source or by the person get "est": false.
+- Never present someone else's recipe as the person's own. Keep the creator and link.
+- Write in the same language the person wrote in.`;
+
+async function runAdd(){
+  const A = S.add;
+  if (A.url && A.url.trim() && !/^https?:\/\//i.test(A.url.trim())) A.url = "https://" + A.url.trim();
+  const text = A.text.trim(), url = (A.url||"").trim();
+  if (!text && !A.files.length && !url){ A.err = A.mode === "import" ? "Paste a link, add a screenshot or paste some text first." : "Add a photo or a few words first."; render(); return; }
+  if (url && !detectPlatform(url)){ A.err = "That link doesn't look complete. It should start with https://"; render(); return; }
+  A.err = ""; A.status = "thinking"; A.progress = "Reading what you sent…"; render();
+  if (!S.sample) return saveRaw();
+  const images = S.imgOK && A.files.length ? A.files.slice(0, 4) : undefined;
+  try {
+    if (!A.matchId && !A.dupeAction && S.recipes.length && A.mode !== "idea"){
+      A.progress = "Checking whether you already have this…"; render();
+      const idx = S.recipes.map(r => ({id:r.id, name:r.name, kind:kindOf(r), source: r.source?.url || r.source?.creator || undefined, ingredients: ingNames(r).slice(0,10)}));
+      const c = await S.sample.json(`You keep a personal recipe collection free of duplicates. Collection index:\n${JSON.stringify(idx)}\n\nNew entry${images ? " (images attached)" : ""}:\nLink: ${url || "none"}\nText: """${text || "(none)"}"""\n\nIs this very likely the SAME dish or recipe as one entry (same link, or clearly the same recipe — not merely a similar dish)? Reply with only JSON: {"matchId": string or null}`, {modelTier:"quick", images, cache:false});
+      if (c && typeof c.matchId === "string" && S.recipes.some(r => r.id === c.matchId)){
+        A.dupeId = c.matchId; A.status = "dupe"; render(); document.getElementById("ov")?.scrollTo(0,0); return;
+      }
+    }
+    await buildEntry(images);
+  } catch (e){ failAdd(e); }
+}
+async function buildEntry(images){
+  const A = S.add, text = A.text.trim(), url = (A.url||"").trim();
+  const merging = A.matchId && A.dupeAction !== "keep" && A.dupeAction !== "replace";
+  const existing = merging ? S.recipes.find(r => r.id === A.matchId) : null;
+  A.status = "thinking";
+  A.progress = A.mode === "import" ? "Importing…" : existing ? "Updating " + existing.name + "…" : A.mode === "idea" ? "Shaping your idea…" : "Writing up your recipe…"; render();
+  const ex = existing ? stripLocal({...existing, photos: undefined, history: undefined, versions: undefined, original: undefined, source: existing.source ? {...existing.source, screenshots: undefined} : null}) : null;
+  let prompt = `You are the editor of a personal recipe collection. Today is ${today()}.\n\n`;
+  if (existing){
+    prompt += `This adds to an existing entry:\n${JSON.stringify(ex)}\n\n`;
+    if (A.intent === "my-version") prompt += `They have now COOKED this saved recipe. Create THEIR version: "kind":"recipe", keep "source" exactly (creator, link), set ingredients and steps to what they actually used (their quantities and substitutions; keep source items they didn't mention changing), fill "changes", "substitutions", "rating", "thoughts", "nextTime", "myVersion". "missing" must be empty.\n`;
+    else if (A.intent === "made-it" || (kindOf(existing) === "inspiration" && A.mode === "cooked")) prompt += `They have now cooked this idea. Make it a completed recipe ("kind":"recipe"), keep the "idea" object unchanged, and use what they report as the real ingredients and method.\n`;
+    else if (!inCookbook(existing)) prompt += `They are adding more source material (screenshots, caption, transcript, notes) to this saved entry. Combine everything into the most complete version, keep the same "kind" unless it is now clearly a full recipe (inspiration → "imported"), keep the source, and update "missing" to what is still lacking.\n`;
+    else prompt += `Merge their new information into it. Preserve everything already there unless they correct it. Update quantities or steps they changed. Their latest rating, if given, becomes "rating".\n`;
+  } else if (A.mode === "import"){
+    const p = url ? detectPlatform(url) : null, hd = url ? handleFromUrl(url) : null;
+    prompt += `They are SAVING something they found${url ? ` at this link: ${url} (platform: ${p}${hd ? `, creator handle from the link: ${hd}` : ""})` : ""}${images ? ". Screenshots are attached: read the visible text, identify the dish, ingredients, quantities, instructions and the source/creator if visible" : ""}.
+IMPORTANT: you cannot open links. Use only the text and images given here; the link itself only tells you the platform and possibly the creator. If the recipe details are not provided, DO NOT invent them: leave ingredients and steps empty, give a working name (list "name" in "estimated" if you guessed it from the link), and list in "missing" what they could add (the caption, a screenshot of the ingredients, the video transcript, their own notes).
+Use "kind":"imported" if there is an actual recipe (ingredients and/or method), otherwise "kind":"inspiration". Fill "source" (platform, creator, url, notes). Leave rating/thoughts/nextTime/myVersion/changes empty — they haven't cooked it.${A.why ? `\nWhy they're saving it: ${A.why}` : ""}\n`;
+  } else if (A.mode === "idea"){
+    prompt += `They are describing an IDEA they have not cooked. Use "kind":"inspiration", fill the "idea" object, leave ingredients and steps empty.\n`;
+  } else {
+    prompt += `They are adding a dish they cooked${images ? " (their photos are attached)" : ""}. Use "kind":"recipe" unless they clearly haven't cooked it. If they mention it came from somewhere, fill "source".\n`;
+  }
+  prompt += `\nWhat they wrote:\n"""${text || "(nothing — use the link and images)"}"""\n\n${RULES}\n\nReply with only JSON of this shape:\n{
+  "recipe": ${SCHEMA},
+  "cooked": {"date": "YYYY-MM-DD", "rating": number|null, "note": string} or null  (only if they say they made it; date = today unless given),
+  "versionChange": {"summary": string, "changes": [string]} or null  (only for an update that changes a recipe they already cooked),
+  "insight": string or null  (a short personal discovery across versions, only when the evidence supports it)
+}`;
+  const out = await S.sample.json(prompt, {images, cache:false});
+  if (!out || !out.recipe || !out.recipe.name) throw {code:"invalid_json"};
+  A.err = "";
+  A.draft = buildDraft(out, existing);
+  A.status = "preview"; render();
+  document.getElementById("ov")?.scrollTo(0,0);
+}
+function failAdd(e){
+  const A = S.add; if (!A) return;
+  A.status = "form";
+  A.err = ({not_granted:"Your Google AI key didn't work. Check it in Settings, or tap Save again to keep this as written.", rate_limited:"You've hit Google's free limit for now. Try again in a minute.", invalid_json:"The write-up came back incomplete. Try again, or add a little more detail.", refused:"The AI couldn't write this one up. Try rephrasing."}[e && e.code]) || "Something went wrong writing this up. Try again.";
+  if (e && (e.code === "not_granted" || e.code === "sampling_disabled")) S.sample = null;
+  render();
+}
+const arr = v => Array.isArray(v) ? v : [];
+function buildDraft(out, existing){
+  const A = S.add, r = out.recipe;
+  const kind = ["recipe","imported","inspiration"].includes(r.kind) ? r.kind : "recipe";
+  let source = r.source && typeof r.source === "object" ? {...r.source} : null;
+  if (A.mode === "import" && A.url){ source = source || {}; source.url = source.url || A.url.trim(); source.platform = source.platform || detectPlatform(A.url); if (!source.creator && handleFromUrl(A.url)) source.creator = handleFromUrl(A.url); }
+  if (A.mode === "import" && !source && A.files.length) source = {platform:"screenshot"};
+  if (existing?.source) source = {...existing.source, ...(source||{}), screenshots: existing.source.screenshots || []};
+  const clean = {
+    kind, name: String(r.name).slice(0,120), description: r.description || "", plate: null, emoji: typeof r.emoji === "string" && r.emoji.length <= 8 ? r.emoji : (existing?.emoji || null),
+    categories: arr(r.categories), cuisine: r.cuisine || null,
+    time: r.time || {}, servings: r.servings || null, estimated: arr(r.estimated),
+    ingredients: arr(r.ingredients), steps: arr(r.steps),
+    rating: typeof r.rating === "number" ? r.rating : (existing?.rating ?? null),
+    thoughts: r.thoughts || null, nextTime: r.nextTime || null, myVersion: r.myVersion || null,
+    changes: arr(r.changes), substitutions: arr(r.substitutions),
+    source, missing: kind === "recipe" ? [] : arr(r.missing),
+    tags: arr(r.tags).slice(0,8),
+    idea: kindOf(existing||{}) === "inspiration" ? existing.idea : (r.idea || existing?.idea || null)
+  };
+  if (A.why && clean.idea && !clean.idea.whySaved) clean.idea.whySaved = A.why;
+  const d = existing ? {...existing, ...clean} : {...clean, photos: [], history: [], versions: [], color: COLORS[Math.floor(Math.random()*COLORS.length)]};
+  d.example = false;
+  if (kind === "recipe") delete d.status; else d.status = existing?.status || (kind === "inspiration" ? "idea" : "saved");
+  if (A.intent === "my-version" && existing && !existing.original){
+    d.original = {name: existing.name, time: existing.time || {}, servings: existing.servings || null, ingredients: existing.ingredients || [], steps: existing.steps || [], notes: existing.source?.notes || null};
+  }
+  if (out.cooked && out.cooked.date && kind === "recipe"){
+    d.history = [...(d.history||[]), {date: out.cooked.date, rating: out.cooked.rating ?? null, note: out.cooked.note || ""}];
+    if (out.cooked.rating) d.rating = out.cooked.rating;
+  }
+  if (existing && inCookbook(existing) && out.versionChange){
+    const vs = [...(d.versions||[])];
+    if (!vs.length) vs.push({n:1, date:(existing.createdAt||today()).slice(0,10), summary:"Original version", changes:[]});
+    vs.push({n: vs.length+1, date: today(), summary: out.versionChange.summary || "", changes: out.versionChange.changes || []});
+    d.versions = vs;
+  }
+  if (out.insight) d.insight = out.insight;
+  // the plate circle belongs to the cover photo: keep the old one unless the new photo becomes the cover
+  const newCover = A.files.length && !(A.mode === "import" || A.mode === "generate" || A.intent === "more-info") && !(existing && inCookbook(existing) && (existing.photos||[]).length);
+  d.plate = newCover && r.plate && isFinite(r.plate.x) ? {x:+r.plate.x, y:+r.plate.y, r:+r.plate.r} : (existing?.plate || null);
+  // previews: screenshots (import / more-info) vs own photos
+  const asShots = A.mode === "import" || A.mode === "generate" || A.intent === "more-info";
+  d._previewShots = [...(existing?.source?.screenshots||[]).map(img), ...(asShots ? A.urls : [])];
+  d._previewPhotos = asShots ? (existing?.photos||[]).map(img) : [...A.urls, ...(existing?.photos||[]).map(img)];
+  if (!asShots && existing && inCookbook(existing)) d._previewPhotos = [...(existing.photos||[]).map(img), ...A.urls];
+  return d;
+}
+async function saveDraft(){
+  const A = S.add, d = A.draft;
+  A.status = "thinking"; A.progress = "Saving…"; render();
+  try {
+    const newIds = A.files.length && S.assets ? await uploadPhotos(A.files) : [];
+    const asShots = A.mode === "import" || A.mode === "generate" || A.intent === "more-info";
+    let base = null, id;
+    if (A.matchId && A.dupeAction !== "keep"){ base = S.recipes.find(r => r.id === A.matchId); id = A.matchId; }
+    else id = S.db.collection("recipes").doc().id;
+    if (A.dupeAction === "replace" && base){
+      // new content, keep the person's photos, history and creation date
+      d.photos = base.photos || []; d.history = base.history || []; d.createdAt = base.createdAt; d.color = base.color;
+      d.versions = [...(base.versions||[]), {n: (base.versions||[]).length + 1, date: today(), summary: "Replaced with a new version", changes: []}];
+      if (base.source?.screenshots && d.source) d.source.screenshots = [...(d.source.screenshots||[])];
+    } else if (base){
+      if (asShots){ d.photos = base.photos || []; }
+      else d.photos = inCookbook(base) ? [...(base.photos||[]), ...newIds] : [...newIds, ...(base.photos||[])];
+    } else {
+      d.photos = asShots ? [] : newIds;
+      d.createdAt = new Date().toISOString();
+    }
+    if (asShots && newIds.length){ d.source = d.source || {platform:"screenshot"}; d.source.screenshots = [...((base?.source?.screenshots && A.dupeAction !== "replace") ? base.source.screenshots : (d.source.screenshots||[])), ...newIds]; }
+    await saveDoc(id, d);
+    A.urls.forEach(u => URL.revokeObjectURL(u));
+    const kindNow = kindOf(d);
+    S.add = null; S.openId = id;
+    S.detail = {confirmDel:false, log:null, busy:false, showOriginal:false, msg: base && A.dupeAction !== "replace" ? "Updated." : (kindNow === "recipe" ? "Added to your recipes." : "Added to your recipes.")};
+    render();
+  } catch (e){
+    A.status = "preview";
+    A.err = e && e.code === "quota_exceeded" ? "Your cookbook storage is full. Delete a few photos or entries first." : "Couldn't save. Check your connection and try again.";
+    render();
+  }
+}
+async function saveRaw(){
+  const A = S.add;
+  try {
+    const ids = A.files.length && S.assets ? await uploadPhotos(A.files) : [];
+    const t = A.text.trim(), url = (A.url||"").trim();
+    const asShots = A.mode === "import" || A.mode === "generate" || A.intent === "more-info";
+    if (A.matchId){
+      const r = S.recipes.find(x => x.id === A.matchId);
+      const d = {...r};
+      if (asShots){ d.source = {...(r.source||{platform:"screenshot"})}; d.source.screenshots = [...(r.source?.screenshots||[]), ...ids]; if (t) d.source.notes = [r.source?.notes, t].filter(Boolean).join("\n\n"); }
+      else { d.photos = [...(r.photos||[]), ...ids]; if (t) d.history = [...(r.history||[]), {date: today(), rating:null, note:t}]; if (!inCookbook(r)) { d.kind = "recipe"; delete d.status; } }
+      await saveDoc(r.id, d); S.add = null; S.openId = r.id;
+    } else {
+      const id = S.db.collection("recipes").doc().id;
+      const p = url ? detectPlatform(url) : null;
+      const first = (t.split(/\n|\. /)[0] || (p ? "Saved from " + PLATFORM_ONE[p] : "Untitled dish")).slice(0,70);
+      const d = { kind: A.mode === "import" ? "imported" : A.mode === "idea" ? "inspiration" : "recipe", name: first, description: "", tags: [], history: [], versions: [], color: COLORS[hash(id)%COLORS.length], createdAt: new Date().toISOString(),
+        photos: asShots ? [] : ids, thoughts: A.mode === "cooked" ? t : null,
+        idea: A.mode === "idea" ? {concept: t, whySaved: A.why || null} : null,
+        source: A.mode === "import" ? {platform: p || "screenshot", url: url || null, creator: url ? handleFromUrl(url) : null, notes: t || null, screenshots: ids} : null,
+        missing: A.mode === "import" ? ["Ingredients and method"] : [] };
+      if (d.kind !== "recipe") d.status = d.kind === "inspiration" ? "idea" : "saved";
+      await saveDoc(id, d); S.add = null; S.openId = id;
+    }
+    S.detail = {confirmDel:false, log:null, busy:false, showOriginal:false, msg:"Saved as written."}; render();
+  } catch (e){ A.status = "form"; A.err = "Couldn't save. Check your connection and try again."; render(); }
+}
+
+/* ================= find the plate in the cover photo ================= */
+async function runPlate(r){
+  const D = S.detail; if (!S.sample || D.plateBusy || !(r.photos||[]).length) return;
+  D.plateBusy = true; D.msg = ""; render();
+  try {
+    const blob = await (await fetch(img(r.photos[0]))).blob();
+    const p = await S.sample.json(`This is a photo of a dish. Find the main plate, bowl or container the food is in. Reply with only JSON for the smallest circle that contains it: {"x": centre as % of image width, "y": centre as % of image height, "r": radius as % of image width}. Example: {"x": 50, "y": 52, "r": 38}`, {images: [blob], modelTier:"default", cache:false});
+    if (!p || !isFinite(p.x) || !isFinite(p.y) || !isFinite(p.r)) throw {code:"invalid_json"};
+    const fresh = S.recipes.find(x => x.id === r.id) || r;
+    await saveDoc(r.id, {...fresh, plate: {x: Math.min(100, Math.max(0, +p.x)), y: Math.min(100, Math.max(0, +p.y)), r: Math.min(60, Math.max(8, +p.r))}});
+    D.msg = ""; D.err = false;
+  } catch (e){
+    D.err = true; D.msg = e && e.code === "rate_limited" ? "You've hit Google's free limit for now. Try again in a minute." : "Couldn't find the plate in this photo.";
+    if (e && (e.code === "not_granted" || e.code === "sampling_disabled")) S.sample = null;
+  }
+  D.plateBusy = false; render();
+}
+
+/* ================= estimate times & quantities ================= */
+async function runEstimate(r){
+  const D = S.detail; if (!S.sample || D.estBusy) return;
+  D.estBusy = true; D.msg = ""; render();
+  const base = {name: r.name, description: r.description, servings: r.servings || null, time: r.time || {}, ingredients: r.ingredients || [], steps: (r.steps||[]).map(s => s.text)};
+  try {
+    const out = await S.sample.json(`You help complete a home cook's recipe. Recipe:\n${JSON.stringify(base)}\n
+Fill in ONLY what is missing:
+- "servings": keep it if present; otherwise estimate (a number as a string, e.g. "2").
+- "time": keep any value that is present; estimate prep, cook and total where null (like "15 min", "1 h 10 min"). Base it on the steps.
+- "ingredients": return the same groups and items in the same order. Keep every item that already has a quantity EXACTLY as written, with its "est" unchanged. For items without a quantity, prefix a realistic metric quantity for the servings (grams for solids, ml for liquids, or tbsp/tsp/pieces where that is how cooks measure it) and set "est": true. Leave "salt", "pepper" and similar to-taste items as they are.
+- "added": list which of "servings","time.prep","time.cook","time.total" you estimated.
+Write in the recipe's language. Reply with only JSON: {"servings": string, "time": {"prep": string, "cook": string, "total": string}, "ingredients": [{"group": string, "items": [{"text": string, "est": boolean}]}], "added": [string]}`, {modelTier:"default", cache:false});
+    const fresh = S.recipes.find(x => x.id === r.id) || r;
+    const d = {...fresh};
+    const t = {...(fresh.time||{})};
+    ["prep","cook","total"].forEach(k => { if (!t[k] && out?.time?.[k]) t[k] = out.time[k]; });
+    d.time = t;
+    if (!fresh.servings && out?.servings) d.servings = String(out.servings);
+    const oldCount = (fresh.ingredients||[]).reduce((n,g) => n + (g.items||[]).length, 0);
+    const newCount = Array.isArray(out?.ingredients) ? out.ingredients.reduce((n,g) => n + (g.items||[]).length, 0) : 0;
+    if (newCount && newCount >= oldCount) d.ingredients = out.ingredients;
+    const added = Array.isArray(out?.added) ? out.added.filter(x => ["servings","time.prep","time.cook","time.total"].includes(x)) : [];
+    ["prep","cook","total"].forEach(k => { if (!fresh.time?.[k] && t[k] && !added.includes("time."+k)) added.push("time."+k); });
+    if (!fresh.servings && d.servings && !added.includes("servings")) added.push("servings");
+    d.estimated = [...new Set([...(fresh.estimated||[]), ...added])];
+    await saveDoc(r.id, d);
+    D.estBusy = false; D.serv = null; D.msg = "Added estimated times and quantities, marked est."; D.err = false;
+  } catch (e){
+    D.estBusy = false; D.err = true;
+    D.msg = e && e.code === "not_granted" ? "Your Google AI key didn't work. Check it in Settings." : e && e.code === "rate_limited" ? "You've hit Google's free limit for now. Try again in a minute." : "Couldn't estimate this one. Try again.";
+    if (e && (e.code === "not_granted" || e.code === "sampling_disabled")) S.sample = null;
+  }
+  render();
+}
+
+/* ================= recipe generator ================= */
+async function runGenerate(){
+  const A = S.add, text = A.text.trim();
+  if (!text && !A.files.length){ A.err = "Type an idea or some ingredients first" + (S.imgOK ? ", or add a photo." : "."); render(); return; }
+  if (!S.sample) return;
+  A.err = ""; A.status = "thinking"; A.progress = "Creating your recipe…"; render();
+  let taste = "";
+  if (A.taste){
+    const liked = cookbook().filter(r => (r.rating||0) >= 4 || isFav(r)).slice(0,12).map(r => ({name:r.name, rating:r.rating, tags:r.tags, nextTime:r.nextTime || undefined}));
+    if (liked.length) taste = `\nRecipes they rated highly (match their taste, don't copy):\n${JSON.stringify(liked)}\n`;
+  }
+  const mine = cookbook().map(r => ({name:r.name, ingredients: ingNames(r).slice(0,12), steps: (r.steps||[]).length}));
+  const images = S.imgOK && A.files.length ? A.files.slice(0,4) : undefined;
+  const prompt = `You are a recipe developer for a personal cookbook. Today is ${today()}. Create ONE complete, cookable recipe from what the person gives you: an idea, ingredients they have, recipes of theirs to combine or riff on${images ? ", and the attached photo (a dish to recreate, or ingredients to use)" : ""}.
+Their input:\n"""${text || "(see photo)"}"""\n${taste}
+Their cookbook, in case they refer to their own recipes by name:\n${JSON.stringify(mine).slice(0, 12000)}
+
+Give real quantities and clear numbered steps. Prefer ingredients they named; keep extra ingredients to common pantry items. Set "kind":"imported", "source": null, "missing": [], "estimated": [], every "est": false, "rating"/"thoughts"/"nextTime"/"myVersion" null, "changes"/"substitutions" empty. If there's one key tip or technique, make it the description's second sentence. Write in the language they wrote in.
+
+Reply with only JSON: {"recipe": ${SCHEMA}}`;
+  try {
+    const out = await S.sample.json(prompt, {images, cache:false});
+    if (!S.add) return;
+    if (!out || !out.recipe || !out.recipe.name) throw {code:"invalid_json"};
+    const r = out.recipe;
+    const d = buildDraft({recipe: {...r, kind: "imported", missing: [], estimated: [], rating: null, thoughts: null, nextTime: null, myVersion: null, changes: [], substitutions: [], source: null}}, null);
+    d.kind = "imported"; d.status = "want"; d.missing = [];
+    d.source = {platform: "claude", name: "Recipe generator", creator: null, url: null, notes: text || (images ? "A photo" : null), screenshots: []};
+    d._previewShots = [...A.urls]; d._previewPhotos = [];
+    A.draft = d; A.status = "preview";
+    render(); document.getElementById("ov")?.scrollTo(0,0);
+  } catch (e){
+    if (!S.add) return;
+    A.status = "form";
+    A.err = ({not_granted:"Your Google AI key didn't work. Check it in Settings.", rate_limited:"You've hit Google's free limit for now. Try again in a minute.", invalid_json:"The recipe came back incomplete. Try again.", refused:"The AI couldn't create this one. Try rephrasing.", image_rejected:"That photo couldn't be read. Try a different one."}[e && e.code]) || "Something went wrong creating the recipe. Try again.";
+    if (e && (e.code === "not_granted" || e.code === "sampling_disabled")) S.sample = null;
+    render();
+  }
+}
+
+/* ================= search ================= */
+function localSearch(q){
+  const ql = q.toLowerCase();
+  const words = ql.split(/\W+/).filter(w => w.length > 2 && !["something","with","recipes","recipe","what","have","the","and","for","can","make","show","give","which","did","from","save","saved"].includes(w));
+  if (/recent/.test(ql)) return byCooked().slice(0,8).map(r => r.id);
+  if (/5 star|five star/.test(ql)) return cookbook().filter(r => r.rating === 5).map(r => r.id);
+  const plat = Object.keys(PLATFORM_ONE).find(k => ql.includes(k));
+  if (plat && plat !== "other") return S.recipes.filter(r => platformOf(r) === plat).map(r => r.id);
+  return S.recipes.map(r => {
+    const hay = [r.name, r.description, r.cuisine, ...(r.tags||[]), ...(r.categories||[]), ...ingNames(r), r.thoughts, r.idea?.concept, r.source?.creator].join(" ").toLowerCase();
+    return [r, words.reduce((s,w) => s + (hay.includes(w) ? 1 : 0) + (hay.includes(w.replace(/s$/,"")) ? .5 : 0), 0)];
+  }).filter(x => x[1] > 0).sort((a,b) => b[1]-a[1]).map(x => x[0].id);
+}
+let searchCtl = null;
+async function runSearch(q){
+  const s = S.search; s.q = q; s.err = ""; s.answer = "";
+  if (!q.trim()){ s.ids = null; render(); return; }
+  if (!S.sample){ s.ids = localSearch(q); render(); return; }
+  s.busy = true; render();
+  searchCtl?.abort(); searchCtl = new AbortController();
+  try {
+    const idx = S.recipes.map(r => ({id:r.id, name:r.name, kind:kindOf(r), status:statusOf(r), source: platformOf(r) ? {platform: platformOf(r), creator: r.source.creator} : "mine", categories:r.categories, cuisine:r.cuisine, tags:r.tags, time:r.time?.total, rating:r.rating, favorite:isFav(r), ingredients:ingNames(r).slice(0,14), lastCooked:lastCooked(r), timesCooked:(r.history||[]).length, added:(r.createdAt||"").slice(0,10), idea:r.idea?.concept}));
+    const out = await S.sample.json(`You search a person's own recipe collection. Today is ${today()}. Entries are their cooked recipes (kind "recipe"), recipes they saved from elsewhere ("imported") and inspiration. Use ONLY these entries; never suggest outside recipes.\n${JSON.stringify(idx)}\n\nTheir question: "${q}"\n\nReply with only JSON: {"answer": one or two friendly sentences answering directly (mention if nothing fits), "ids": [matching entry ids, best first]}`, {modelTier:"quick", signal: searchCtl.signal});
+    s.answer = typeof out?.answer === "string" ? out.answer : "";
+    s.ids = Array.isArray(out?.ids) ? out.ids.filter(id => S.recipes.some(r => r.id === id)) : localSearch(q);
+  } catch (e){
+    if (e && e.code === "cancelled") return;
+    if (e && (e.code === "not_granted" || e.code === "sampling_disabled")) S.sample = null;
+    s.ids = localSearch(q); s.answer = "";
+  }
+  s.busy = false; render();
+}
+
+/* ================= events ================= */
+function go(view){ S.view = view; S.openId = null; try { localStorage.setItem("prs-view", view); } catch(e){} render(); window.scrollTo(0,0); }
+const freshDetail = (msg="") => ({confirmDel:false, log:null, busy:false, msg, showOriginal:false, serv:null, estBusy:false});
+function openAdd(a, focus){ S.add = a; render(); setTimeout(() => { const el = document.getElementById(focus === "shots" ? "add-files" : focus === "text" ? "add-text" : (a.mode === "import" && !a.intent ? "add-url" : "add-text")); if (el && focus !== "shots") el.focus(); }, 30); }
+app.addEventListener("click", async e => {
+  const t = e.target.closest("button,[data-open]"); if (!t || t.disabled) return;
+  const D = S.detail;
+  if (t.dataset.view) return go(t.dataset.view);
+  if (t.dataset.open){ S.openId = t.dataset.open; S.detail = freshDetail(); render(); return; }
+  if (t.dataset.filter){ S.filter = t.dataset.filter; S.showFilters = false; render(); return; }
+  if (t.dataset.sfilter){ S.savedFilter = t.dataset.sfilter; render(); return; }
+  if (t.dataset.source != null){ S.sourceFilter = t.dataset.source || null; render(); return; }
+  if (t.dataset.q){ S.view = "search"; S.openId = null; render(); runSearch(t.dataset.q); return; }
+  if (t.dataset.mode){ S.add.mode = t.dataset.mode; render(); return; }
+  if (t.dataset.dupe){
+    const A = S.add; A.dupeAction = t.dataset.dupe; A.matchId = A.dupeId;
+    try { await buildEntry(S.imgOK && A.files.length ? A.files.slice(0,4) : undefined); } catch(err){ failAdd(err); }
+    return;
+  }
+  if (t.dataset.status){
+    const r = S.recipes.find(x => x.id === S.openId), k = t.dataset.status;
+    if (k === "cooked"){ openAdd(newAdd("cooked", r.id, isInspo(r) ? "made-it" : "my-version")); return; }
+    try { await saveDoc(r.id, {...r, status: k, favorite: k === "favorite" ? true : (r.status === "favorite" ? false : !!r.favorite)}); } catch(err){ D.msg = "Couldn't change the status."; D.err = true; render(); }
+    return;
+  }
+  if (t.dataset.cover != null){
+    const r = S.recipes.find(x => x.id === S.openId); const i = +t.dataset.cover; if (!r || !i) return;
+    const p = [...r.photos]; const [m] = p.splice(i,1); p.unshift(m);
+    try { await saveDoc(r.id, {...r, photos:p, plate:null}); } catch(err){ D.msg = "Couldn't change the cover."; D.err = true; render(); }
+    return;
+  }
+  const act = t.dataset.act; if (!act) return;
+  const r = S.recipes.find(x => x.id === S.openId);
+  switch (act){
+    case "add": openAdd(newAdd("cooked")); break;
+    case "settings": S.settings = {msg:"", err:false, busy:false}; S.openId = null; S.add = null; render(); break;
+    case "close-settings": S.settings = null; render(); break;
+    case "save-key": saveKey(); break;
+    case "remove-key": lsDel(KEY_K); lsDel(MODEL_K); S.sample = null; S.imgOK = false; S.settings.msg = "Key removed from this phone."; S.settings.err = false; render(); break;
+    case "export": exportBackup(); break;
+    case "add-idea": openAdd(newAdd("idea")); break;
+    case "close-add": S.add?.urls.forEach(u => URL.revokeObjectURL(u)); S.add = null; render(); break;
+    case "process": if (S.add.mode === "generate") runGenerate(); else runAdd(); break;
+    case "back-to-form": S.add.status = "form"; render(); break;
+    case "gen-again": runGenerate(); break;
+    case "toggle-filters": S.showFilters = !S.showFilters; render(); break;
+    case "add-mode": openAdd(newAdd(t.dataset.m)); break;
+    case "save-draft": saveDraft(); break;
+    case "close": S.openId = null; render(); break;
+    case "made-it": openAdd(newAdd("cooked", r.id, "made-it")); break;
+    case "my-version": openAdd(newAdd("cooked", r.id, "my-version")); break;
+    case "more-info": openAdd(newAdd("import", r.id, "more-info")); break;
+    case "update": openAdd(newAdd("cooked", r.id, "update")); break;
+    case "serv-up": D.serv = (D.serv || baseServ(r)) + 1; render(); break;
+    case "serv-down": D.serv = Math.max(1, (D.serv || baseServ(r)) - 1); render(); break;
+    case "estimate": runEstimate(r); break;
+    case "find-plate": runPlate(r); break;
+    case "show-mine": D.showOriginal = false; render(); break;
+    case "show-orig": D.showOriginal = true; render(); break;
+    case "log": D.log = {date: today(), rating: r.rating || 0, note: ""}; D.msg = ""; render(); break;
+    case "log-cancel": D.log = null; render(); break;
+    case "fav": try { await saveDoc(r.id, {...r, favorite: !isFav(r), status: r.status === "favorite" ? "cooked" : r.status}); } catch(err){ D.msg = "Couldn't save that."; D.err = true; render(); } break;
+    case "del": D.confirmDel = true; render(); break;
+    case "del-no": D.confirmDel = false; render(); break;
+    case "del-yes":
+      D.busy = true; render();
+      try { await S.db.collection("recipes").doc(r.id).delete();
+        if (S.assets) for (const p of [...(r.photos||[]), ...(r.source?.screenshots||[])]) { try { await S.assets.delete(p); } catch(_){} }
+        S.openId = null; S.detail = freshDetail(); render();
+      } catch(err){ D.busy = false; D.msg = "Couldn't delete. Try again."; D.err = true; render(); }
+      break;
+    case "clear-examples":
+      t.disabled = true;
+      for (const x of S.recipes.filter(x => x.example)) { try { await S.db.collection("recipes").doc(x.id).delete(); } catch(_){} }
+      break;
+  }
+});
+app.addEventListener("input", e => {
+  const t = e.target, A = S.add;
+  if (t.id === "add-text") A.text = t.value;
+  else if (t.id === "add-why") A.why = t.value;
+  else if (t.id === "add-url"){ A.url = t.value; const p = detectPlatform(t.value), hd = handleFromUrl(t.value); const el = document.getElementById("add-detected"); if (el) el.textContent = p ? (p === "web" ? "Website" : PLATFORMS[p]) + (hd ? " · " + hd : "") : ""; }
+  else if (t.id === "sq") S.search.q = t.value;
+  else if (t.id === "lg-rate"){ S.detail.log.rating = +t.value; document.getElementById("lg-out").textContent = +t.value ? t.value + " / 5" : "No rating"; }
+  else if (t.id === "lg-note") S.detail.log.note = t.value;
+  else if (t.id === "lg-date") S.detail.log.date = t.value;
+});
+app.addEventListener("change", async e => {
+  const t = e.target;
+  if (t.id === "add-taste") S.add.taste = t.checked;
+  if (t.id === "import-file" && t.files.length) importBackup(t.files[0]);
+  if (t.id === "add-files"){
+    const A = S.add; A.urls.forEach(u => URL.revokeObjectURL(u));
+    A.files = [...t.files].filter(f => f.type.startsWith("image/") || /\.(heic|jpe?g|png|webp)$/i.test(f.name)).slice(0,6);
+    A.urls = A.files.map(f => URL.createObjectURL(f)); render();
+  }
+  if (t.id === "addphoto"){
+    const r = S.recipes.find(x => x.id === S.openId); if (!r || !t.files.length) return;
+    S.detail.busy = true; render();
+    try { const ids = await uploadPhotos([...t.files].slice(0,6)); await saveDoc(r.id, {...r, photos:[...(r.photos||[]), ...ids], plate: (r.photos||[]).length ? (r.plate||null) : null}); S.detail.msg = "Photo added."; S.detail.err = false; }
+    catch(err){ S.detail.msg = err && err.code === "too_large" ? "That photo is too large." : "Couldn't add the photo. Try again."; S.detail.err = true; }
+    S.detail.busy = false; render();
+  }
+});
+app.addEventListener("paste", e => {
+  // paste a screenshot straight into the add sheet
+  if (!S.add || S.add.status !== "form" || !S.assets) return;
+  const files = [...(e.clipboardData?.files || [])].filter(f => f.type.startsWith("image/"));
+  if (!files.length) return;
+  e.preventDefault(); const A = S.add;
+  A.files = [...A.files, ...files].slice(0,6); A.urls.push(...files.map(f => URL.createObjectURL(f))); A.urls = A.urls.slice(0,6); render();
+});
+app.addEventListener("submit", async e => {
+  e.preventDefault();
+  if (e.target.id === "sform") return runSearch(document.getElementById("sq").value);
+  if (e.target.id === "logform"){
+    const r = S.recipes.find(x => x.id === S.openId), L = S.detail.log;
+    const d = {...r, history: [...(r.history||[]), {date: L.date || today(), rating: L.rating || null, note: L.note.trim()}]};
+    if (L.rating) d.rating = L.rating;
+    S.detail.busy = true; render();
+    try { await saveDoc(r.id, d); S.detail = freshDetail("Logged in your cooking history."); }
+    catch(err){ S.detail.busy = false; S.detail.msg = "Couldn't save the cook. Try again."; S.detail.err = true; }
+    render();
+  }
+});
+function fitBgWords(){
+  const el = document.querySelector(".d-bgword"); if (!el) return;
+  const name = (el.dataset.name || el.textContent || "").trim(); if (!name) return;
+  const run = () => {
+    const W = el.clientWidth; if (!W) return;
+    const words = name.split(/\s+/).slice(0, 10), n = words.length;
+    el.innerHTML = "";
+    const probe = document.createElement("span"); probe.style.fontSize = "100px"; el.appendChild(probe);
+    const widthOf = t => { probe.textContent = t; return probe.getBoundingClientRect().width || 1; };
+    // try every way to break the title into 1-4 lines and keep the one with the biggest letters
+    const cands = [];
+    const split = (start, parts, acc) => {
+      if (parts === 1){ cands.push([...acc, words.slice(start).join(" ")]); return; }
+      for (let i = start + 1; i <= n - parts + 1; i++) split(i, parts - 1, [...acc, words.slice(start, i).join(" ")]);
+    };
+    for (let k = 1; k <= Math.min(3, n); k++) split(0, k, []);
+    let best = null;
+    for (const lines of cands){
+      let fs = Math.min(...lines.map(t => 100 * W / widthOf(t)), 200);
+      if (lines.length * fs * 0.86 > W * 0.42) fs = (W * 0.42) / (lines.length * 0.86);
+      if (!best || fs > best.fs + 2) best = {lines, fs};
+    }
+    el.innerHTML = "";
+    best.lines.forEach(t => { const sp = document.createElement("span"); sp.textContent = t; sp.style.fontSize = best.fs + "px"; el.appendChild(sp); });
+  };
+  run();
+  try { if (document.fonts && !document.fonts.check("100px Anton")) document.fonts.load("100px Anton").then(run, () => {}); } catch(e){}
+}
+window.addEventListener("resize", () => { const el = document.querySelector(".d-bgword"); if (el) fitBgWords(); });
+try { document.fonts && document.fonts.ready.then(() => fitBgWords()); } catch(e){}
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape") return;
+  if (S.settings){ S.settings = null; render(); }
+  else if (S.add){ if (S.add.status === "preview") S.add.status = "form"; else S.add = null; render(); }
+  else if (S.openId){ S.openId = null; render(); }
+});
+
+/* ================= on-phone storage (IndexedDB) ================= */
+const IDB = (() => {
+  let dbp;
+  const open = () => dbp || (dbp = new Promise((res, rej) => {
+    const r = indexedDB.open("cookit", 1);
+    r.onupgradeneeded = () => { const d = r.result; if (!d.objectStoreNames.contains("recipes")) d.createObjectStore("recipes"); if (!d.objectStoreNames.contains("blobs")) d.createObjectStore("blobs"); };
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  }));
+  const run = (store, mode, fn) => open().then(d => new Promise((res, rej) => {
+    const t = d.transaction(store, mode), out = fn(t.objectStore(store));
+    t.oncomplete = () => res(out && "result" in out ? out.result : undefined); t.onerror = () => rej(t.error); t.onabort = () => rej(t.error);
+  }));
+  return {
+    put: (st, k, v) => run(st, "readwrite", s => s.put(v, k)),
+    del: (st, k) => run(st, "readwrite", s => s.delete(k)),
+    all: st => open().then(d => new Promise((res, rej) => {
+      const t = d.transaction(st, "readonly"), s = t.objectStore(st), ks = s.getAllKeys(), vs = s.getAll();
+      t.oncomplete = () => res(ks.result.map((k, i) => [k, vs.result[i]])); t.onerror = () => rej(t.error);
+    }))
+  };
+})();
+const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 9);
+const snapListeners = [];
+async function emitRecipes(){
+  const rows = await IDB.all("recipes");
+  const snap = { docs: rows.map(([id, v]) => ({ id: String(id), exists: true, data: () => v })) };
+  snapListeners.forEach(f => f(snap));
+}
+const localDB = {
+  collection: () => ({
+    onSnapshot: (cb, err) => { snapListeners.push(cb); emitRecipes().catch(() => err && err({code:"unavailable"})); return () => {}; },
+    doc: id => { id = id || newId(); return {
+      id,
+      set: async d => { await IDB.put("recipes", id, JSON.parse(JSON.stringify(d))); emitRecipes(); },
+      delete: async () => { await IDB.del("recipes", id); emitRecipes(); }
+    }; }
+  })
+};
+const localAssets = {
+  upload: async blob => { const id = newId(); await IDB.put("blobs", id, blob); BLOBURL[id] = URL.createObjectURL(blob); return { id, url: BLOBURL[id] }; },
+  delete: async id => { await IDB.del("blobs", id); if (BLOBURL[id]) URL.revokeObjectURL(BLOBURL[id]); delete BLOBURL[id]; return { deleted: true }; }
+};
+async function loadBlobs(){ for (const [id, b] of await IDB.all("blobs")) if (!BLOBURL[id]) BLOBURL[id] = URL.createObjectURL(b); }
+
+/* ================= AI: the person's own Google Gemini key ================= */
+const KEY_K = "cookit.key", MODEL_K = "cookit.model";
+const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+const lsDel = k => { try { localStorage.removeItem(k); } catch (e) {} };
+async function listGeminiModels(key){
+  const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200", { headers: { "x-goog-api-key": key } });
+  if (!r.ok) throw { code: r.status === 400 || r.status === 403 ? "bad_key" : "offline" };
+  const j = await r.json();
+  const ver = n => { const m = n.match(/gemini-(\d+(?:\.\d+)?)/); return m ? parseFloat(m[1]) : 0; };
+  return (j.models || [])
+    .filter(m => (m.supportedGenerationMethods || []).includes("generateContent"))
+    .map(m => m.name.replace(/^models\//, ""))
+    .filter(n => /^gemini-[\d.]+-flash/.test(n) && !/(tts|image|audio|live|embed|thinking-exp)/.test(n))
+    .sort((a, b) => (/lite/.test(a) - /lite/.test(b)) || (/preview|exp/.test(a) - /preview|exp/.test(b)) || ver(b) - ver(a));
+}
+const blobToB64 = blob => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1]); r.onerror = rej; r.readAsDataURL(blob); });
+async function forAI(blob){
+  try {
+    const bmp = await createImageBitmap(blob);
+    const k = Math.min(1, 1280 / Math.max(bmp.width, bmp.height));
+    const c = document.createElement("canvas"); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+    c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
+    return await new Promise(r => c.toBlob(b => r(b || blob), "image/jpeg", .82));
+  } catch (e) { return blob; }
+}
+function parseJSON(t){
+  try { return JSON.parse(t); } catch (e) {}
+  const f = t.match(/```(?:json)?\s*([\s\S]*?)```/); if (f) { try { return JSON.parse(f[1]); } catch (e) {} }
+  const a = t.search(/[\[{]/), z = Math.max(t.lastIndexOf("}"), t.lastIndexOf("]"));
+  if (a >= 0 && z > a) { try { return JSON.parse(t.slice(a, z + 1)); } catch (e) {} }
+  throw { code: "invalid_json" };
+}
+async function askGemini(prompt, images){
+  const key = lsGet(KEY_K), model = lsGet(MODEL_K);
+  if (!key || !model) throw { code: "not_granted" };
+  const imgs = images ? await Promise.all([...images].slice(0, 4).map(async b => blobToB64(await forAI(b)))) : [];
+  let res;
+  try {
+    res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent", {
+      method: "POST", headers: { "content-type": "application/json", "x-goog-api-key": key },
+      body: JSON.stringify({ contents: [{ role: "user", parts: [...imgs.map(d => ({ inline_data: { mime_type: "image/jpeg", data: d } })), { text: prompt }] }],
+        generationConfig: { responseMimeType: "application/json", maxOutputTokens: 16384, temperature: 0.5 } })
+    });
+  } catch (e) { throw { code: "upstream_error" }; }
+  if (!res.ok){
+    let msg = ""; try { msg = (await res.json()).error?.message || ""; } catch (e) {}
+    throw { code: res.status === 429 ? "rate_limited" : (res.status === 403 || (res.status === 400 && /api key/i.test(msg))) ? "not_granted" : "upstream_error", message: msg };
+  }
+  const j = await res.json(), c = j.candidates?.[0];
+  if (!c) throw { code: j.promptFeedback?.blockReason ? "refused" : "upstream_error" };
+  if (c.finishReason === "MAX_TOKENS") throw { code: "invalid_json" };
+  const text = (c.content?.parts || []).filter(p => p.text && !p.thought).map(p => p.text).join("");
+  if (!text) throw { code: "upstream_error" };
+  return parseJSON(text);
+}
+function makeSample(){
+  if (!lsGet(KEY_K) || !lsGet(MODEL_K)) return null;
+  const f = async (p, o) => ({ text: JSON.stringify(await askGemini(p, o && o.images)), truncated: false });
+  f.json = (p, o) => askGemini(p, o && o.images);
+  f.limits = async () => ({ images: { maxCount: 4 } });
+  return f;
+}
+
+/* ================= settings: key + backups ================= */
+function settingsHTML(){
+  const st = S.settings, has = !!lsGet(KEY_K);
+  return `<div class="sheet">
+    <div class="d-bar" style="max-width:none"><button class="round" data-act="close-settings" aria-label="Close">${ICON.close}</button></div>
+    <div class="titlebar"><h1 class="h-page">Settings</h1></div>
+    <div style="display:grid;gap:16px">
+    <div class="panel">
+      <div class="eyebrow">Google AI key</div>
+      <p style="margin:0">This powers Create a recipe, writing up dishes, search and estimates. It's free: get a key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="color:var(--accent)">aistudio.google.com/apikey</a> (sign in with Google, tap <b>Create API key</b>). It's saved only on this phone. On the free plan, Google may use what you send to improve its products.</p>
+      <div class="field"><label for="set-key">${has ? "Key saved · paste a new one to replace it" : "Paste your key"}</label><input type="text" id="set-key" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${has ? "••••••••••••" : "AIza…"}" style="width:100%;background:var(--bg);border:1.5px solid var(--line);border-radius:14px;padding:12px 14px;font-size:16px"></div>
+      <div class="actions">${st.busy ? `<div class="thinking"><span class="spin"></span>Checking your key…</div>` : `<button class="pill-btn accent" data-act="save-key">Save key</button>${has ? `<button class="pill-btn" data-act="remove-key">Remove key</button>` : ""}`}</div>
+    </div>
+    <div class="panel">
+      <div class="eyebrow">Back up</div>
+      <p style="margin:0">Your recipes and photos live only on this phone. They're gone if you delete COOKIT from your home screen or get a new phone. Save a backup now and then (for example to Files or iCloud Drive), and restore it here when you need to.</p>
+      <div class="actions"><button class="pill-btn solid" data-act="export">Save a backup</button>
+        <label class="pill-btn" style="position:relative;cursor:pointer">Restore a backup<input type="file" id="import-file" accept="application/json,.json" style="position:absolute;inset:0;opacity:0;cursor:pointer"></label></div>
+    </div>
+    ${st.msg ? `<p class="${st.err ? "err" : "muted"}" style="margin:0">${esc(st.msg)}</p>` : ""}
+    <p class="muted" style="margin:0;font-size:13px">${S.recipes.length} recipe${S.recipes.length === 1 ? "" : "s"} on this phone.</p>
+    </div></div>`;
+}
+async function saveKey(){
+  const st = S.settings, k = (document.getElementById("set-key")?.value || "").trim();
+  if (!k){ st.msg = "Paste your key first."; st.err = true; render(); return; }
+  st.busy = true; st.msg = ""; render();
+  try {
+    const models = await listGeminiModels(k);
+    if (!models.length) throw { code: "no_model" };
+    lsSet(KEY_K, k); lsSet(MODEL_K, models[0]);
+    S.sample = makeSample(); S.imgOK = true;
+    st.msg = "Key saved. The AI features are ready."; st.err = false;
+  } catch (e) {
+    st.err = true;
+    st.msg = e.code === "bad_key" ? "Google rejected that key. Copy it again from AI Studio." : e.code === "no_model" ? "No suitable Gemini model found for this key." : "Couldn't reach Google. Check your connection.";
+  }
+  st.busy = false; render();
+}
+const blobToDataURL = blob => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(blob); });
+async function exportBackup(){
+  const st = S.settings;
+  try {
+    const recipes = await IDB.all("recipes"), blobs = await IDB.all("blobs");
+    const out = { app: "COOKIT", version: 1, exported: new Date().toISOString(), recipes: recipes.map(([id, data]) => ({ id, data })), photos: {} };
+    for (const [id, b] of blobs) out.photos[id] = await blobToDataURL(b);
+    const name = "cookit-backup-" + today() + ".json";
+    const file = new File([JSON.stringify(out)], name, { type: "application/json" });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: "COOKIT backup" }); st.msg = "Backup ready. Keep it somewhere safe, like Files or iCloud Drive."; st.err = false; render(); return; }
+      catch (e) { if (e && e.name === "AbortError") return; }
+    }
+    const a = document.createElement("a"); a.href = URL.createObjectURL(file); a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    st.msg = "Backup saved as " + name + "."; st.err = false;
+  } catch (e) { st.msg = "Couldn't make the backup. Try again."; st.err = true; }
+  render();
+}
+async function importBackup(file){
+  const st = S.settings;
+  try {
+    const data = JSON.parse(await file.text());
+    if (!data || data.app !== "COOKIT" || !Array.isArray(data.recipes)) throw 0;
+    for (const [id, url] of Object.entries(data.photos || {})) { const b = await (await fetch(url)).blob(); await IDB.put("blobs", id, b); }
+    for (const r of data.recipes) await IDB.put("recipes", String(r.id), r.data);
+    await loadBlobs(); await emitRecipes();
+    st.msg = "Restored " + data.recipes.length + " recipe" + (data.recipes.length === 1 ? "" : "s") + "."; st.err = false;
+  } catch (e) { st.msg = "That file isn't a COOKIT backup."; st.err = true; }
+  render();
+}
+
+/* ================= boot ================= */
+render();
+(async () => {
+  S.canWrite = true; S.db = localDB; S.assets = localAssets;
+  S.sample = makeSample(); S.imgOK = !!S.sample;
+  try { await loadBlobs(); } catch (e) {}
+  S.db.collection("recipes").onSnapshot(snap => {
+    S.recipes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    S.loaded = true; render();
+  }, () => { S.noStore = true; S.storeErr = "COOKIT couldn't open its storage on this phone. Close and reopen the app."; render(); });
+  try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {}
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+})();
+})();
+</script>
+
+</body>
+</html>
