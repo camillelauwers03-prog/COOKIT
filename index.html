@@ -414,7 +414,7 @@ function stampText(r){
   const p = platformOf(r);
   if (isInspo(r)) return p ? "Inspiration · from " + PLATFORM_ONE[p] : "Inspiration";
   if (p === "claude") return isImported(r) ? "Generated recipe" : "Inspired by a generated recipe";
-  if (isImported(r)) return p ? "Saved from " + PLATFORM_ONE[p] : "Saved";
+  if (isImported(r)) return p ? "Saved from " + PLATFORM_ONE[p] : "Not cooked yet";
   return p ? "Inspired by " + (r.source.creator || PLATFORM_ONE[p]) : "";
 }
 
@@ -713,7 +713,8 @@ function detailHTML(r, preview){
         <p class="muted" style="margin:0;font-size:14px">Changed the recipe itself? Use “Update with a note” instead, so the change becomes a new version.</p>
         <div class="actions"><button class="pill-btn accent" type="submit">Save cook</button><button class="pill-btn" type="button" data-act="log-cancel">Cancel</button></div></form>`;
     } else {
-      const primary = isImported(r) ? `<button class="pill-btn accent" data-act="my-version">I cooked this · make my version</button>`
+      const primary = isImported(r) && !platformOf(r) ? `<button class="pill-btn accent" data-act="first-cook">I cooked this</button>`
+        : isImported(r) ? `<button class="pill-btn accent" data-act="my-version">I cooked this · make my version</button>`
         : isInspo(r) ? `<button class="pill-btn accent" data-act="made-it">I made it</button>`
         : `<button class="pill-btn accent" data-act="log">I made this again</button>`;
       const needsEst = !isInspo(r) && ((r.ingredients||[]).length || (r.steps||[]).length) && (!r.time?.total || !r.servings || (r.ingredients||[]).some(g => (g.items||[]).some(i => !/^\s*[\d½¼¾⅓⅔⅛]/.test(i.text) && !/\b(salt|pepper|water|to taste|for serving|optional)\b/i.test(i.text))));
@@ -739,11 +740,12 @@ function detailHTML(r, preview){
 /* ================= add sheet ================= */
 const MODES = [
   {k:"generate", t:"Create a recipe", s:"From an idea, ingredients or a photo", c:"forest"},
-  {k:"cooked", t:"I cooked this", s:"Photo + a few words", c:"tomato"},
+  {k:"cooked", t:"Add a recipe", s:"Yours, cooked or not yet", c:"tomato"},
   {k:"idea", t:"Idea", s:"Something to try later", c:"pink"}
 ];
 function newAdd(mode="cooked", matchId=null, intent=null){
-  return { mode, matchId, intent, dupeAction: null, files: [], urls: [], text: "", url: "", why: "", taste: true, status: "form", err: "", draft: null };
+  // "made" = already cooked. Off by default for a new recipe; on when logging a cook of an existing one.
+  return { mode, matchId, intent, dupeAction: null, files: [], urls: [], text: "", url: "", why: "", taste: true, made: !!intent, status: "form", err: "", draft: null };
 }
 function addHTML(){
   const A = S.add;
@@ -752,15 +754,16 @@ function addHTML(){
   const target = A.matchId ? S.recipes.find(r => r.id === A.matchId) : null;
   const imp = A.mode === "import";
   const ph = {
-    cooked: "Made this for dinner. Chicken, rice, avocado, cucumber, spicy yogurt sauce. Really good, probably 4.5/5.",
+    cooked: "Chicken, rice, avocado, cucumber and a spicy yogurt sauce. Or paste a recipe, or add a photo of one.",
     import: "Paste the caption, the recipe text or the video transcript here.",
     idea: "I want to make a bowl with salmon, avocado and mango.",
     generate: "Chickpeas, spinach, feta and lemon. Something warm for a weeknight. Or: a mix of my burrata pasta and the chicken bowl."
   }[A.mode];
   const gen = A.mode === "generate";
-  const titles = {"made-it":"You made it","my-version":"Make it yours","more-info":"Add more to " + (target?.name || "this"),"update":"Update " + (target?.name || "")};
+  const titles = {"first-cook":"You cooked it","made-it":"You made it","my-version":"Make it yours","more-info":"Add more to " + (target?.name || "this"),"update":"Update " + (target?.name || "")};
   const subs = {
     "made-it":"Tell me how it went and what you actually used. The idea becomes a full recipe, and the original concept is kept.",
+    "first-cook":"How did it go? Add a rating, what you thought, anything you changed and a photo if you have one. It goes into your cooking history.",
     "my-version":"What did you change? Substitutions, your quantities, your rating, what you'd do next time. The original stays attached, so you can always compare.",
     "more-info":"Add a screenshot, the caption, the ingredients or the transcript. I'll combine it with what's already saved.",
     "update":"Describe what changed or how it went. Everything already saved stays; changes become a new version."
@@ -778,9 +781,10 @@ function addHTML(){
   }
   if (gen ? S.imgOK : (S.assets && (A.mode !== "idea" || A.files.length))){
     const what = imp ? "screenshots" : "photos";
-    h += `<div class="drop" id="drop-shots">${A.files.length ? `<div class="thumbs">${A.urls.map(u => `<img src="${u}" alt="">`).join("")}</div><span class="muted">${A.files.length} ${A.files.length>1 ? what : what.slice(0,-1)} · tap to change</span>` : `<b>Add ${gen ? "a photo (optional)" : what}</b><span class="muted">${gen ? "A dish to recreate, or the ingredients you have." : imp ? "A screenshot of the post, the caption or the ingredients. Kept as source material." : "Your own photos. The first one becomes the cover."}</span>`}<input type="file" id="add-files" accept="image/*" multiple aria-label="Add ${what}"></div>`;
+    h += `<div class="drop" id="drop-shots">${A.files.length ? `<div class="thumbs">${A.urls.map(u => `<img src="${u}" alt="">`).join("")}</div><span class="muted">${A.files.length} ${A.files.length>1 ? what : what.slice(0,-1)} · tap to change</span>` : `<b>Add ${gen ? "a photo (optional)" : what}</b><span class="muted">${gen ? "A dish to recreate, or the ingredients you have." : imp ? "A screenshot of the post, the caption or the ingredients. Kept as source material." : (A.made || A.intent) ? "Your own photos. The first one becomes the cover." : "A photo of the dish, or of a recipe to read in."}</span>`}<input type="file" id="add-files" accept="image/*" multiple aria-label="Add ${what}"></div>`;
   }
-  h += `<div class="field"><label for="add-text">${gen ? "What should it be based on?" : imp ? "Copied text (optional)" : A.mode === "idea" ? "The idea" : "Tell me about it"}</label><textarea id="add-text" placeholder="${esc(ph)}">${esc(A.text)}</textarea></div>`;
+  h += `<div class="field"><label for="add-text">${gen ? "What should it be based on?" : imp ? "Copied text (optional)" : A.mode === "idea" ? "The idea" : (A.intent ? "Tell me about it" : "The recipe")}</label><textarea id="add-text" placeholder="${esc(ph)}">${esc(A.text)}</textarea></div>`;
+  if (A.mode === "cooked" && !A.intent) h += `<label style="display:flex;gap:10px;align-items:center;font-weight:600;font-size:15px"><input type="checkbox" id="add-made" ${A.made ? "checked" : ""} style="width:20px;height:20px;accent-color:var(--accent)">I've already cooked this</label>${A.made ? `<p class="muted" style="margin:-6px 0 0;font-size:14px">Add how it went and a rating if you like. It goes into your cooking history.</p>` : `<p class="muted" style="margin:-6px 0 0;font-size:14px">It's saved as not cooked yet. When you make it, open it and tap “I cooked this”.</p>`}`;
   if (gen && S.recipes.some(r => inCookbook(r) && r.rating)) h += `<label style="display:flex;gap:8px;align-items:center;font-weight:600;font-size:15px"><input type="checkbox" id="add-taste" ${A.taste ? "checked" : ""} style="width:18px;height:18px;accent-color:var(--accent)">Match my taste (uses recipes I rated 4★ and up)</label>`;
   if (imp && !A.intent) h += `<div class="field"><label for="add-why">Why you're saving it (optional)</label><input type="text" id="add-why" placeholder="Potential summer dinner idea" value="${esc(A.why)}"></div>`;
   if (A.status === "thinking") h += `<div class="thinking"><span class="spin"></span>${esc(A.progress || "Writing it up…")}</div>`;
@@ -919,6 +923,7 @@ async function buildEntry(images){
   if (existing){
     prompt += `This adds to an existing entry:\n${JSON.stringify(ex)}\n\n`;
     if (A.intent === "my-version") prompt += `They have now COOKED this saved recipe. Create THEIR version: "kind":"recipe", keep "source" exactly (creator, link), set ingredients and steps to what they actually used (their quantities and substitutions; keep source items they didn't mention changing), fill "changes", "substitutions", "rating", "thoughts", "nextTime", "myVersion". "missing" must be empty.\n`;
+    else if (A.intent === "first-cook") prompt += `They have now COOKED this recipe for the first time. Make it "kind":"recipe", keep everything already there, apply any changes they mention to ingredients or steps, and fill "cooked", "rating", "thoughts" and "nextTime" from what they say.\n`;
     else if (A.intent === "made-it" || (kindOf(existing) === "inspiration" && A.mode === "cooked")) prompt += `They have now cooked this idea. Make it a completed recipe ("kind":"recipe"), keep the "idea" object unchanged, and use what they report as the real ingredients and method.\n`;
     else if (!inCookbook(existing)) prompt += `They are adding more source material (screenshots, caption, transcript, notes) to this saved entry. Combine everything into the most complete version, keep the same "kind" unless it is now clearly a full recipe (inspiration → "imported"), keep the source, and update "missing" to what is still lacking.\n`;
     else prompt += `Merge their new information into it. Preserve everything already there unless they correct it. Update quantities or steps they changed. Their latest rating, if given, becomes "rating".\n`;
@@ -930,7 +935,9 @@ Use "kind":"imported" if there is an actual recipe (ingredients and/or method), 
   } else if (A.mode === "idea"){
     prompt += `They are describing an IDEA they have not cooked. Use "kind":"inspiration", fill the "idea" object, leave ingredients and steps empty.\n`;
   } else {
-    prompt += `They are adding a dish they cooked${images ? " (their photos are attached)" : ""}. Use "kind":"recipe" unless they clearly haven't cooked it. If they mention it came from somewhere, fill "source".\n`;
+    prompt += A.made
+      ? `They are adding a dish they have COOKED${images ? " (their photos are attached)" : ""}. Use "kind":"recipe" and fill "cooked". If they mention it came from somewhere, fill "source".\n`
+      : `They are adding a recipe they have NOT cooked yet${images ? " (photos are attached: a photo of the dish or of a recipe to read)" : ""}. Use "kind":"imported", "cooked": null, rating/thoughts/nextTime null. If it came from somewhere, fill "source"; otherwise "source": null.\n`;
   }
   prompt += `\nWhat they wrote:\n"""${text || "(nothing — use the link and images)"}"""\n\n${RULES}\n\nReply with only JSON of this shape:\n{
   "recipe": ${SCHEMA},
@@ -1050,7 +1057,7 @@ async function saveRaw(){
       const id = S.db.collection("recipes").doc().id;
       const p = url ? detectPlatform(url) : null;
       const first = (t.split(/\n|\. /)[0] || (p ? "Saved from " + PLATFORM_ONE[p] : "Untitled dish")).slice(0,70);
-      const d = { kind: A.mode === "import" ? "imported" : A.mode === "idea" ? "inspiration" : "recipe", name: first, description: "", tags: [], history: [], versions: [], color: COLORS[hash(id)%COLORS.length], createdAt: new Date().toISOString(),
+      const d = { kind: A.mode === "import" || (A.mode === "cooked" && !A.made) ? "imported" : A.mode === "idea" ? "inspiration" : "recipe", name: first, description: "", tags: [], history: [], versions: [], color: COLORS[hash(id)%COLORS.length], createdAt: new Date().toISOString(),
         photos: asShots ? [] : ids, thoughts: A.mode === "cooked" ? t : null,
         idea: A.mode === "idea" ? {concept: t, whySaved: A.why || null} : null,
         source: A.mode === "import" ? {platform: p || "screenshot", url: url || null, creator: url ? handleFromUrl(url) : null, notes: t || null, screenshots: ids} : null,
@@ -1210,7 +1217,7 @@ app.addEventListener("click", async e => {
   }
   if (t.dataset.status){
     const r = S.recipes.find(x => x.id === S.openId), k = t.dataset.status;
-    if (k === "cooked"){ openAdd(newAdd("cooked", r.id, isInspo(r) ? "made-it" : "my-version")); return; }
+    if (k === "cooked"){ openAdd(newAdd("cooked", r.id, isInspo(r) ? "made-it" : platformOf(r) ? "my-version" : "first-cook")); return; }
     try { await saveDoc(r.id, {...r, status: k, favorite: k === "favorite" ? true : (r.status === "favorite" ? false : !!r.favorite)}); } catch(err){ D.msg = "Couldn't change the status."; D.err = true; render(); }
     return;
   }
@@ -1243,6 +1250,7 @@ app.addEventListener("click", async e => {
     case "close": S.openId = null; render(); break;
     case "made-it": openAdd(newAdd("cooked", r.id, "made-it")); break;
     case "my-version": openAdd(newAdd("cooked", r.id, "my-version")); break;
+    case "first-cook": openAdd(newAdd("cooked", r.id, "first-cook")); break;
     case "more-info": openAdd(newAdd("import", r.id, "more-info")); break;
     case "update": openAdd(newAdd("cooked", r.id, "update")); break;
     case "serv-up": D.serv = (D.serv || baseServ(r)) + 1; render(); break;
@@ -1282,6 +1290,7 @@ app.addEventListener("input", e => {
 app.addEventListener("change", async e => {
   const t = e.target;
   if (t.id === "add-taste") S.add.taste = t.checked;
+  if (t.id === "add-made"){ S.add.made = t.checked; render(); }
   if (t.id === "import-file" && t.files.length) importBackup(t.files[0]);
   if (t.id === "add-files"){
     const A = S.add; A.urls.forEach(u => URL.revokeObjectURL(u));
