@@ -553,6 +553,7 @@ function exampleNotice(){
 function viewHome(){
   const cooked = byCooked(), favs = favorites(), added = byAdded();
   let h = titleBar("COOKIT", `<div style="display:flex;gap:10px;align-items:center"><button class="pill-btn" data-act="add">Add</button><button class="round" data-act="settings" aria-label="Settings" style="background:transparent;color:var(--fg);border:1.5px solid var(--fg)">${ICON.gear}</button></div>`) + exampleNotice()
+    + (S.loaded && !ghToken() && S.sample ? `<div class="notice"><span>Your recipes are only on this phone. Turn on sync to keep them safe.</span><button class="pill-btn" data-act="settings">Turn on sync</button></div>` : "")
     + (S.sample ? "" : `<div class="notice"><span>Add your free Google AI key to create recipes, write up dishes and search in your own words.</span><button class="pill-btn" data-act="settings">Open Settings</button></div>`);
   if (!S.recipes.length) return h + emptyHTML("Your cookbook starts here", "Add something you cooked, or create a new recipe from an idea, your ingredients or a photo.") + `<div class="h-sec"><h2>Add or create</h2></div>` + addPanelHTML();
   if (cooked.length) h += `<div class="h-sec"><h2>Recently cooked</h2></div>` + grid(cooked.slice(0,6));
@@ -1228,6 +1229,9 @@ app.addEventListener("click", async e => {
     case "save-key": saveKey(); break;
     case "remove-key": lsDel(KEY_K); lsDel(MODEL_K); S.sample = null; S.imgOK = false; S.settings.msg = "Key removed from this phone."; S.settings.err = false; render(); break;
     case "export": exportBackup(); break;
+    case "gh-connect": connectGitHub(); break;
+    case "sync-now": runSync(true); break;
+    case "gh-forget": lsDel(GH_TOKEN_K); S.settings.msg = "Disconnected. Your recipes stay on this phone."; S.settings.err = false; render(); break;
     case "add-idea": openAdd(newAdd("idea")); break;
     case "close-add": S.add?.urls.forEach(u => URL.revokeObjectURL(u)); S.add = null; render(); break;
     case "process": if (S.add.mode === "generate") runGenerate(); else runAdd(); break;
@@ -1383,13 +1387,13 @@ const localDB = {
     onSnapshot: (cb, err) => { snapListeners.push(cb); emitRecipes().catch(() => err && err({code:"unavailable"})); return () => {}; },
     doc: id => { id = id || newId(); return {
       id,
-      set: async d => { await IDB.put("recipes", id, JSON.parse(JSON.stringify(d))); emitRecipes(); },
-      delete: async () => { await IDB.del("recipes", id); emitRecipes(); }
+      set: async d => { await IDB.put("recipes", id, JSON.parse(JSON.stringify(d))); emitRecipes(); scheduleSync(); },
+      delete: async () => { await IDB.del("recipes", id); addTomb(id); emitRecipes(); scheduleSync(); }
     }; }
   })
 };
 const localAssets = {
-  upload: async blob => { const id = newId(); await IDB.put("blobs", id, blob); BLOBURL[id] = URL.createObjectURL(blob); return { id, url: BLOBURL[id] }; },
+  upload: async blob => { const id = newId(); await IDB.put("blobs", id, blob); BLOBURL[id] = URL.createObjectURL(blob); addPending(id); scheduleSync(); return { id, url: BLOBURL[id] }; },
   delete: async id => { await IDB.del("blobs", id); if (BLOBURL[id]) URL.revokeObjectURL(BLOBURL[id]); delete BLOBURL[id]; return { deleted: true }; }
 };
 async function loadBlobs(){ for (const [id, b] of await IDB.all("blobs")) if (!BLOBURL[id]) BLOBURL[id] = URL.createObjectURL(b); }
@@ -1458,6 +1462,128 @@ function makeSample(){
   return f;
 }
 
+/* ================= sync: recipes + photos in a private GitHub project =================
+   cookit-data/recipes.json = {"app":"COOKIT","recipes":{id:data},"deleted":{id:ISO time}}
+   cookit-data/photos/<id>.jpg = one photo per file
+   Newest updatedAt wins; a deletion wins when it is newer than the recipe. */
+const GH_TOKEN_K = "cookit.ghtoken", GH_REPO_K = "cookit.ghrepo", DEFAULT_REPO = "camillelauwers03-prog/cookit-data";
+const ghRepo = () => lsGet(GH_REPO_K) || DEFAULT_REPO;
+const ghToken = () => lsGet(GH_TOKEN_K);
+const jget = (k, d) => { try { return JSON.parse(lsGet(k) || "") || d; } catch (e) { return d; } };
+const addTomb = id => { const t = jget("cookit.tombs", {}); t[id] = new Date().toISOString(); lsSet("cookit.tombs", JSON.stringify(t)); };
+const addPending = id => { const p = jget("cookit.pending", []); if (!p.includes(id)) p.push(id); lsSet("cookit.pending", JSON.stringify(p)); };
+const SYNC = { busy: false, again: false, last: lsGet("cookit.lastSync") || "", err: "" };
+let syncTimer = null;
+function scheduleSync(){ if (!ghToken()) return; clearTimeout(syncTimer); syncTimer = setTimeout(() => runSync(), 1500); }
+async function gh(path, opts = {}){
+  const r = await fetch("https://api.github.com/repos/" + ghRepo() + path, { ...opts, cache: "no-store",
+    headers: { "Authorization": "Bearer " + ghToken(), "Accept": opts.raw ? "application/vnd.github.raw" : "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", ...(opts.body ? { "Content-Type": "application/json" } : {}) } });
+  return r;
+}
+const utf8ToB64 = str => { const b = new TextEncoder().encode(str); let s = ""; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(s); };
+const b64ToUtf8 = b64 => new TextDecoder().decode(Uint8Array.from(atob(b64.replace(/\s/g, "")), c => c.charCodeAt(0)));
+async function readRemote(){
+  const r = await gh("/contents/recipes.json");
+  if (r.status === 404) return { data: { app: "COOKIT", recipes: {}, deleted: {} }, sha: null };
+  if (r.status === 401 || r.status === 403) throw { code: "auth" };
+  if (!r.ok) throw { code: "net" };
+  const j = await r.json();
+  let text = j.content ? b64ToUtf8(j.content) : "";
+  if (!text) { const raw = await gh("/contents/recipes.json", { raw: true }); text = await raw.text(); }
+  const data = JSON.parse(text || "{}");
+  return { data: { app: "COOKIT", recipes: data.recipes || {}, deleted: data.deleted || {} }, sha: j.sha };
+}
+const stamp = d => (d && (d.updatedAt || d.createdAt)) || "";
+async function runSync(manual){
+  if (!ghToken()) return;
+  if (SYNC.busy) { SYNC.again = true; return; }
+  SYNC.busy = true; SYNC.err = ""; if (S.settings) render();
+  try {
+    for (let attempt = 0; attempt < 3; attempt++){
+      const { data: remote, sha } = await readRemote();
+      const local = Object.fromEntries((await IDB.all("recipes")).map(([k, v]) => [String(k), v]));
+      const tombs = { ...remote.deleted };
+      for (const [id, t] of Object.entries(jget("cookit.tombs", {}))) if (!tombs[id] || t > tombs[id]) tombs[id] = t;
+      const merged = {};
+      for (const id of new Set([...Object.keys(local), ...Object.keys(remote.recipes)])){
+        const L = local[id], R = remote.recipes[id];
+        const best = !L ? R : !R ? L : (stamp(R) > stamp(L) ? R : L);
+        if (tombs[id] && tombs[id] >= stamp(best)) continue;
+        merged[id] = best;
+      }
+      // bring this phone up to date
+      for (const [id, d] of Object.entries(merged)) if (!local[id] || JSON.stringify(local[id]) !== JSON.stringify(d)) await IDB.put("recipes", id, d);
+      for (const id of Object.keys(local)) if (!merged[id]) await IDB.del("recipes", id);
+      // and the online copy
+      const out = { app: "COOKIT", version: 1, recipes: merged, deleted: tombs };
+      const same = JSON.stringify(remote.recipes) === JSON.stringify(merged) && JSON.stringify(remote.deleted) === JSON.stringify(tombs);
+      if (!same){
+        const w = await gh("/contents/recipes.json", { method: "PUT", body: JSON.stringify({ message: "Update recipes from the app", content: utf8ToB64(JSON.stringify(out, null, 1)), ...(sha ? { sha } : {}) }) });
+        if (w.status === 409 || w.status === 422) continue;           // changed elsewhere meanwhile: merge again
+        if (w.status === 401 || w.status === 403) throw { code: "auth" };
+        if (!w.ok) throw { code: "net" };
+      }
+      lsSet("cookit.tombs", "{}");   // the online copy now carries every deletion
+      await emitRecipes();
+      // photos: upload new ones from this phone, download ones added elsewhere
+      const pending = jget("cookit.pending", []), still = [];
+      for (const id of pending){
+        const blob = (await IDB.all("blobs")).find(([k]) => k === id)?.[1];
+        if (!blob) continue;
+        const b64 = await blobToB64(blob);
+        const w = await gh("/contents/photos/" + id + ".jpg", { method: "PUT", body: JSON.stringify({ message: "Add photo", content: b64 }) });
+        if (!(w.ok || w.status === 422)) still.push(id);
+      }
+      lsSet("cookit.pending", JSON.stringify(still));
+      const wanted = new Set();
+      Object.values(merged).forEach(d => [...(d.photos || []), ...((d.source && d.source.screenshots) || [])].forEach(x => wanted.add(x)));
+      let got = 0;
+      for (const id of wanted){
+        if (BLOBURL[id]) continue;
+        const r = await gh("/contents/photos/" + id + ".jpg", { raw: true });
+        if (!r.ok) continue;
+        const blob = new Blob([await r.arrayBuffer()], { type: "image/jpeg" });
+        await IDB.put("blobs", id, blob); BLOBURL[id] = URL.createObjectURL(blob); got++;
+      }
+      if (got) render();
+      SYNC.last = new Date().toISOString(); lsSet("cookit.lastSync", SYNC.last);
+      break;
+    }
+  } catch (e) {
+    SYNC.err = e && e.code === "auth" ? "GitHub refused the key. Check it in Settings." : "Couldn't reach GitHub. Your changes are kept on this phone and sync next time.";
+  }
+  SYNC.busy = false;
+  if (S.settings || manual) render();
+  if (SYNC.again) { SYNC.again = false; scheduleSync(); }
+}
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") scheduleSync(); });
+async function connectGitHub(){
+  const st = S.settings, tok = (document.getElementById("set-gh")?.value || "").trim();
+  if (!tok){ st.msg = "Paste your GitHub key first."; st.err = true; render(); return; }
+  st.ghBusy = true; st.msg = ""; render();
+  try {
+    const r = await fetch("https://api.github.com/repos/" + ghRepo(), { headers: { "Authorization": "Bearer " + tok, "Accept": "application/vnd.github+json" } });
+    if (r.status === 401) throw "bad";
+    if (r.status === 404 || r.status === 403) throw "repo";
+    if (!r.ok) throw "net";
+    const j = await r.json();
+    if (j.permissions && j.permissions.push === false) throw "read";
+    lsSet(GH_TOKEN_K, tok);
+    // everything already on this phone counts as new for the online copy
+    const ids = (await IDB.all("blobs")).map(([k]) => k); const p = jget("cookit.pending", []); ids.forEach(id => { if (!p.includes(id)) p.push(id); }); lsSet("cookit.pending", JSON.stringify(p));
+    st.msg = "Connected. Syncing your cookbook…"; st.err = false;
+    st.ghBusy = false; render();
+    await runSync(true);
+    if (!SYNC.err) { st.msg = "Connected. Your cookbook syncs automatically."; render(); }
+    return;
+  } catch (e) {
+    st.err = true;
+    st.msg = e === "bad" ? "GitHub rejected that key. Copy it again." : e === "repo" ? "That key can't open cookit-data. Check that you picked cookit-data under Repository access." : e === "read" ? "That key can only read. Set Contents to Read and write." : "Couldn't reach GitHub. Check your connection.";
+  }
+  st.ghBusy = false; render();
+}
+const agoText = iso => { if (!iso) return "never"; const m = Math.round((Date.now() - new Date(iso)) / 60000); return m < 1 ? "just now" : m < 60 ? m + " min ago" : m < 1440 ? Math.round(m / 60) + " h ago" : Math.round(m / 1440) + " days ago"; };
+
 /* ================= settings: key + backups ================= */
 function settingsHTML(){
   const st = S.settings, has = !!lsGet(KEY_K);
@@ -1472,8 +1598,17 @@ function settingsHTML(){
       <div class="actions">${st.busy ? `<div class="thinking"><span class="spin"></span>Checking your key…</div>` : `<button class="pill-btn accent" data-act="save-key">Save key</button>${has ? `<button class="pill-btn" data-act="remove-key">Remove key</button>` : ""}`}</div>
     </div>
     <div class="panel">
-      <div class="eyebrow">Back up</div>
-      <p style="margin:0">Your recipes and photos live only on this phone. They're gone if you delete COOKIT from your home screen or get a new phone. Save a backup now and then (for example to Files or iCloud Drive), and restore it here when you need to.</p>
+      <div class="eyebrow">Sync with GitHub</div>
+      ${ghToken() ? `<p style="margin:0">Your cookbook is saved in your private GitHub project <b>${esc(ghRepo().split("/")[1])}</b> and syncs automatically. Last synced: <b>${agoText(SYNC.last)}</b>.</p>
+        ${SYNC.err ? `<p class="err" style="margin:0">${esc(SYNC.err)}</p>` : ""}
+        <div class="actions">${SYNC.busy ? `<div class="thinking"><span class="spin"></span>Syncing…</div>` : `<button class="pill-btn solid" data-act="sync-now">Sync now</button><button class="pill-btn" data-act="gh-forget">Disconnect</button>`}</div>`
+      : `<p style="margin:0">Keep your recipes and photos safe online in your private GitHub project, so they survive a new phone and Claude can see them too. Paste the key you made on GitHub for <b>cookit-data</b>.</p>
+        <div class="field"><label for="set-gh">GitHub key</label><input type="text" id="set-gh" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="github_pat_…" style="width:100%;background:var(--bg);border:1.5px solid var(--line);border-radius:14px;padding:12px 14px;font-size:16px"></div>
+        <div class="actions">${st.ghBusy ? `<div class="thinking"><span class="spin"></span>Connecting…</div>` : `<button class="pill-btn accent" data-act="gh-connect">Connect</button>`}</div>`}
+    </div>
+    <div class="panel">
+      <div class="eyebrow">Back up to a file</div>
+      <p style="margin:0">${ghToken() ? "Not needed while sync is on, but you can still save a copy as a file." : "Without sync, your recipes and photos live only on this phone. They're gone if you delete COOKIT from your home screen or get a new phone. Save a backup now and then (for example to Files or iCloud Drive), and restore it here when you need to."}</p>
       <div class="actions"><button class="pill-btn solid" data-act="export">Save a backup</button>
         <label class="pill-btn" style="position:relative;cursor:pointer">Restore a backup<input type="file" id="import-file" accept="application/json,.json" style="position:absolute;inset:0;opacity:0;cursor:pointer"></label></div>
     </div>
@@ -1522,6 +1657,7 @@ async function importBackup(file){
     if (!data || data.app !== "COOKIT" || !Array.isArray(data.recipes)) throw 0;
     for (const [id, url] of Object.entries(data.photos || {})) { const b = await (await fetch(url)).blob(); await IDB.put("blobs", id, b); }
     for (const r of data.recipes) await IDB.put("recipes", String(r.id), r.data);
+    Object.keys(data.photos || {}).forEach(addPending); scheduleSync();
     await loadBlobs(); await emitRecipes();
     st.msg = "Restored " + data.recipes.length + " recipe" + (data.recipes.length === 1 ? "" : "s") + "."; st.err = false;
   } catch (e) { st.msg = "That file isn't a COOKIT backup."; st.err = true; }
@@ -1540,6 +1676,7 @@ render();
   }, () => { S.noStore = true; S.storeErr = "COOKIT couldn't open its storage on this phone. Close and reopen the app."; render(); });
   try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {}
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+  if (ghToken()) setTimeout(() => runSync(), 400);
 })();
 })();
 </script>
