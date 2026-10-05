@@ -210,20 +210,24 @@ button{cursor:pointer;background:none;border:0;padding:0}
 .answer{font-family:var(--f-display);font-size:22px;line-height:1.3;font-variation-settings:"SOFT" 100;margin:6px 0 24px;max-width:46ch}
 
 /* ---------- sheet / detail overlays ---------- */
-.c-fu-yellow{--cacc:#00492C} .c-fu-green{--cacc:#00492C} .c-fu-sky{--cacc:#E22028} .c-fu-red{--cacc:#E22028} .c-fu-blush{--cacc:#1E4380} .c-fu-navy{--cacc:#1E4380} .c-fu-mint{--cacc:#E04E2A} .c-fu-orange{--cacc:#E04E2A} .c-cc-blood{--cacc:#630700} .c-cc-magenta{--cacc:#125603} .c-cc-lincoln{--cacc:#125603} .c-cc-lime{--cacc:#7523B4} .c-cc-grape{--cacc:#7523B4} .c-cc-sinopia{--cacc:#D13F13} .c-cc-rose{--cacc:#D13F13} .c-cc-baby{--cacc:#8C6313} .c-cc-golden{--cacc:#906713} .c-cc-cerulean{--cacc:#0D5072}
-/* recipe page: the original light design, with the card's colour as accents */
-.dd{--accent:var(--cacc,var(--fg));--accent-ink:#FBF8F1}
-.dd .facts .fact{background:var(--cbg);color:var(--cfg);border-color:transparent}
-.dd .facts .fact .k{color:var(--cfg);opacity:.8}
-.dd .facts .fact .est{color:var(--cfg)}
-.dd .facts .servings button{border-color:var(--cfg)}
-.dd .d-body h3{color:var(--cacc)}
-.dd .steps li::before{color:var(--cacc)}
-.dd .timeline li::before{background:var(--cbg);box-shadow:0 0 0 2px var(--cacc)}
-.dd .note{background:color-mix(in srgb,var(--cbg) 16%,var(--surface));border-color:color-mix(in srgb,var(--cbg) 45%,var(--line))}
-.dd .note .eyebrow{color:var(--cacc)}
-.dd .ing li{border-bottom-color:color-mix(in srgb,var(--cbg) 45%,var(--line))}
-.dd .tag{border-color:var(--cacc);color:var(--cacc)}
+.c-fu-yellow{--cread:#00492C} .c-fu-green{--cread:#FBBA16} .c-fu-sky{--cread:#9E161C} .c-fu-red{--cread:#FFFFFF} .c-fu-blush{--cread:#1E4380} .c-fu-navy{--cread:#E2B2B4} .c-fu-mint{--cread:#92331B} .c-fu-orange{--cread:#121612} .c-cc-blood{--cread:#FF97D0} .c-cc-magenta{--cread:#115203} .c-cc-lincoln{--cread:#C3F380} .c-cc-lime{--cread:#7523B4} .c-cc-grape{--cread:#FAE170} .c-cc-sinopia{--cread:#B23610} .c-cc-rose{--cread:#FFFCFC} .c-cc-baby{--cread:#704F0F} .c-cc-golden{--cread:#FFF4CD} .c-cc-cerulean{--cread:#7FEEFF}
+/* the recipe page wears its card's colours: background, text, boxes, lines and buttons */
+.dd{--bg:var(--cbg);--fg:var(--cfg);--muted:color-mix(in srgb,var(--cfg) 72%,var(--cbg));--line:color-mix(in srgb,var(--cfg) 24%,var(--cbg));
+  --surface:color-mix(in srgb,var(--cfg) 9%,var(--cbg));--chip:color-mix(in srgb,var(--cfg) 15%,var(--cbg));--accent:var(--cfg);--accent-ink:var(--cbg);--est:var(--cfg);
+  background:var(--bg);color:var(--fg);min-height:100vh}
+.dd .d-hero.has-photo .d-chip{background:var(--cbg);color:var(--cfg)}
+.dd .fact,.dd .note,.dd .ver,.dd .panel{background:var(--surface);border-color:var(--line)}
+.dd .steps li::before{color:var(--cfg)}
+.dd .timeline li::before{background:var(--cfg)}
+.dd .insight{background:var(--cfg);color:var(--cbg)}
+.dd .pill-btn{border-color:var(--cfg);color:var(--cfg)}
+.dd .pill-btn.accent,.dd .pill-btn.solid{background:var(--cfg);border-color:var(--cfg);color:var(--cbg)}
+.dd .tag{border-color:var(--line);color:var(--fg)}
+.dd .field input,.dd .field textarea{background:var(--surface);border-color:var(--line);color:var(--fg)}
+.dd .err{color:var(--fg);font-weight:700}
+.dd .d-body{color:var(--cread,var(--cfg))}
+.dd .d-body h3,.dd .d-herotitle,.dd .stars,.dd .steps li::before{color:var(--cfg)}
+.dd .d-body .muted,.dd .legend,.dd .fact .k,.dd .eyebrow{color:var(--cread,var(--cfg));opacity:.8}
 .overlay{position:fixed;inset:0;z-index:40;background:var(--bg);overflow-y:auto;overscroll-behavior:contain;animation:rise .38s cubic-bezier(.2,.8,.2,1)}
 @keyframes rise{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
 @media (prefers-reduced-motion:reduce){.overlay{animation:none}.card,.card .pic img{transition:none}}
