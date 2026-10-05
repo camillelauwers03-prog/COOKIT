@@ -272,6 +272,21 @@ button{cursor:pointer;background:none;border:0;padding:0}
 .fact .v{font-family:var(--f-display);font-weight:700;font-size:20px;font-variant-numeric:tabular-nums}
 .est{color:var(--est);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border:1px solid currentColor;border-radius:6px;padding:0 5px;margin-left:6px;vertical-align:2px;white-space:nowrap}
 .legend{font-size:13px;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+.macros{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:520px){.macros{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.macro{border:1px solid var(--line);border-radius:16px;padding:12px 14px;min-width:0}
+.macro .k{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-weight:700}
+.macro .v{font-family:var(--f-display);font-weight:700;font-size:24px;font-variant-numeric:tabular-nums}
+.macro .v small{font-family:var(--f-body);font-size:14px;font-weight:600;margin-left:2px}
+.dd .macro{border-color:color-mix(in srgb,var(--cbg) 45%,var(--line))}
+.dd .macro.lead{background:var(--cbg);color:var(--cfg);border-color:transparent}
+.dd .macro.lead .k{color:var(--cfg);opacity:.8}
+.msplit{display:flex;height:8px;border-radius:var(--r-pill);overflow:hidden;margin-top:12px;background:var(--line)}
+.msplit i{display:block;height:100%}
+.msplit .p{background:var(--cacc,var(--fg))}.msplit .c{background:color-mix(in srgb,var(--cacc,var(--fg)) 45%,var(--surface))}.msplit .f{background:color-mix(in srgb,var(--cacc,var(--fg)) 18%,var(--surface))}
+.mkey{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-top:8px}
+.mkey span::before{content:"";display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:0;background:var(--sw)}
+.mnote{font-size:14px;color:var(--muted);margin:10px 0 0;max-width:64ch}
 .sec h3{font-family:var(--f-cond);font-weight:400;text-transform:uppercase;letter-spacing:.03em;font-size:26px;margin:0 0 12px;display:flex;align-items:baseline;gap:10px}
 .sec h3 small{font-family:var(--f-body);font-size:13px;color:var(--muted);letter-spacing:0;text-transform:none}
 .ing-group{margin:14px 0 4px;font-weight:700}
@@ -402,7 +417,7 @@ button{cursor:pointer;background:none;border:0;padding:0}
 /* ================= constants ================= */
 const COLORS = ["fu-yellow", "fu-green", "fu-sky", "fu-red", "fu-blush", "fu-navy", "fu-mint", "fu-orange", "cc-blood", "cc-magenta", "cc-lincoln", "cc-lime", "cc-grape", "cc-sinopia", "cc-rose", "cc-baby", "cc-golden", "cc-cerulean"];
 const FAMILY = {"fu-yellow": "yellow", "fu-green": "green", "fu-sky": "blue", "fu-red": "red", "fu-blush": "red", "fu-navy": "blue", "fu-mint": "green", "fu-orange": "red", "cc-blood": "red", "cc-magenta": "red", "cc-lincoln": "green", "cc-lime": "green", "cc-grape": "purple", "cc-sinopia": "yellow", "cc-rose": "red", "cc-baby": "red", "cc-golden": "yellow", "cc-cerulean": "blue"};
-const FILTERS = ["All","Breakfast","Lunch","Dinner","Snack","Dessert","Drinks","Vegetarian","High protein","Quick","Meal prep"];
+const FILTERS = ["All","Breakfast","Lunch","Dinner","Snack","Dessert","Drinks","Vegetarian","High protein","Most protein","Quick","Meal prep"];
 const PLATFORMS = {tiktok:"TikTok", instagram:"Instagram", pinterest:"Pinterest", youtube:"YouTube", web:"Websites", book:"Books", screenshot:"Screenshots", other:"Elsewhere", claude:"Recipe generator", own:"My own recipes", ideas:"My own ideas"};
 const PLATFORM_ONE = {tiktok:"TikTok", instagram:"Instagram", pinterest:"Pinterest", youtube:"YouTube", web:"the web", book:"a book", screenshot:"a screenshot", other:"elsewhere", claude:"the recipe generator"};
 const STATUS = {idea:"💡 Idea", saved:"💾 Saved", want:"🧑‍🍳 Want to try", cooked:"🧑‍🍳 Cooked", favorite:"⭐ Favorite", notforme:"❌ Not for me"};
@@ -522,6 +537,8 @@ const byAdded = () => S.recipes.filter(r => statusOf(r) !== "notforme").sort((a,
 const favorites = () => cookbook().filter(r => isFav(r) || (r.rating||0) >= 4.5).sort((a,b) => (b.rating||0)-(a.rating||0));
 function matchesFilter(r, f){
   if (f === "All") return true;
+  if (f === "Most protein") return !!macrosOf(r);
+  if (f === "High protein" && (macrosOf(r)?.protein || 0) >= HIGH_PROTEIN) return true;
   const cats = (r.categories||[]).map(c => c.toLowerCase()), tags = (r.tags||[]).map(t => t.toLowerCase());
   return cats.includes(f.toLowerCase()) || tags.includes(slug(f));
 }
@@ -586,6 +603,21 @@ function scaleText(t, k){
   return out + " " + String(t).slice(m[0].length - unit.length).trimStart();
 }
 const baseServ = r => { const n = parseInt(String(r.servings||"").match(/\d+/)?.[0]); return n > 0 ? n : null; };
+/* nutrition: always an estimate, per serving. "sig" remembers the ingredients and servings it was worked out for,
+   so a recipe whose ingredients changed afterwards asks to be recalculated. */
+const HIGH_PROTEIN = 25;   // grams of protein per serving
+const ingSig = r => String(hash(JSON.stringify([ingNames(r), r.servings || ""])));
+const macrosOf = r => { const m = r && r.macros; return m && isFinite(m.kcal) && isFinite(m.protein) ? m : null; };
+const macrosStale = r => { const m = macrosOf(r); return !!(m && m.sig && m.sig !== ingSig(r)); };
+function normMacros(m){
+  if (!m || typeof m !== "object") return null;
+  const n = k => { const v = Number(m[k]); return isFinite(v) && v >= 0 ? v : null; };
+  const kcal = n("kcal"), protein = n("protein"), carbs = n("carbs"), fat = n("fat");
+  if (kcal == null || protein == null || carbs == null || fat == null) return null;
+  return { kcal: Math.round(kcal/10)*10, protein: Math.round(protein), carbs: Math.round(carbs), fat: Math.round(fat),
+    confidence: m.confidence === "rough" ? "rough" : "good", excluded: arr(m.excluded).map(String).slice(0,8), note: typeof m.note === "string" ? m.note.slice(0,240) : null };
+}
+const withSig = (m, r) => m ? {...m, sig: ingSig(r), at: today()} : null;
 function picHTML(r){
   const p = coverOf(r);
   if (p) return `<img src="${img(p)}" alt="${esc(r.name)}" loading="lazy">`;
@@ -593,7 +625,7 @@ function picHTML(r){
 }
 function cardHTML(r){
   const label = r.example ? "Example" : (stampText(r) || (r.categories||[])[0] || r.cuisine || "Recipe");
-  const t = timeLabel(r);
+  const t = S.view === "recipes" && /protein/i.test(S.filter) && macrosOf(r) ? `${r.macros.protein} g protein` : timeLabel(r);
   return `<button class="card c-${colorOf(r)}" data-open="${esc(r.id)}">
     <div class="row"><span>${esc(label)}</span>${t ? `<span class="tpill">${esc(t)}</span>` : ""}</div>
     <div class="pic">${picHTML(r)}</div>
@@ -667,7 +699,7 @@ function addPanelHTML(){
 }
 function viewRecipes(){
   const all = S.recipes.filter(r => statusOf(r) !== "notforme");
-  const list = all.filter(r => matchesFilter(r, S.filter)).sort((a,b) => (b.createdAt||"").localeCompare(a.createdAt||""));
+  const list = all.filter(r => matchesFilter(r, S.filter)).sort((a,b) => S.filter === "Most protein" ? b.macros.protein - a.macros.protein : (b.createdAt||"").localeCompare(a.createdAt||""));
   const extra = [...new Set(cookbook().flatMap(r => r.tags||[]))].filter(t => !FILTERS.some(f => slug(f) === t)).sort().slice(0,14);
   const chips = [...FILTERS, ...extra.map(t => t.replace(/-/g," "))];
   const fbtn = `<button class="pill-btn ${S.filter !== "All" ? "solid" : ""}" data-act="toggle-filters" aria-expanded="${!!S.showFilters}">${S.filter !== "All" ? esc(S.filter) : "Filter"}</button>`;
@@ -718,6 +750,31 @@ function sourceBlock(r){
     ${shots.length ? `<div class="eyebrow" style="margin-top:4px">Source material</div><div class="shots">${shots.map(u => `<img src="${esc(u)}" alt="Saved screenshot">`).join("")}</div>` : ""}
   </div>`;
 }
+function macrosHTML(r, preview){
+  const m = macrosOf(r), D = S.detail;
+  const canRun = !preview && S.canWrite && S.sample && (r.ingredients||[]).length;
+  const btn = label => D.macBusy ? `<div class="thinking"><span class="spin"></span>Working out the nutrition…</div>` : `<button class="pill-btn solid" data-act="macros">${label}</button>`;
+  if (!m){
+    if (!canRun) return "";
+    return `<section class="sec"><h3>Nutrition</h3><div class="panel" style="gap:10px"><p style="margin:0">Estimate calories, protein, carbs and fat per serving from the ingredients. It's marked <span class="est" style="margin:0">est.</span> because it's never measured.</p><div>${btn("Estimate nutrition")}</div></div></section>`;
+  }
+  const ap = m.confidence === "rough" ? "~" : "";
+  const cell = (k, v, unit, lead) => `<div class="macro${lead ? " lead" : ""}"><div class="k">${k}</div><div class="v">${ap}${v}<small>${unit}</small></div></div>`;
+  const pk = m.protein*4, ck = m.carbs*4, fk = m.fat*9, tot = (pk + ck + fk) || 1, pc = x => Math.round(x/tot*100);
+  const b = baseServ(r), n = (!preview && b && D.serv) || b;
+  let h = `<section class="sec"><h3>Nutrition <small>per serving</small><span class="est">est.</span></h3>
+    <div class="macros">${cell("Calories", m.kcal, " kcal")}${cell("Protein", m.protein, " g", true)}${cell("Carbs", m.carbs, " g")}${cell("Fat", m.fat, " g")}</div>
+    <div class="msplit" role="img" aria-label="Calories from protein ${pc(pk)}%, carbs ${pc(ck)}%, fat ${pc(fk)}%"><i class="p" style="width:${pc(pk)}%"></i><i class="c" style="width:${pc(ck)}%"></i><i class="f" style="width:${pc(fk)}%"></i></div>
+    <div class="mkey"><em style="font-style:normal">Calories from</em><span style="--sw:var(--cacc,var(--fg))">Protein ${pc(pk)}%</span><span style="--sw:color-mix(in srgb,var(--cacc,var(--fg)) 45%,var(--surface))">Carbs ${pc(ck)}%</span><span style="--sw:color-mix(in srgb,var(--cacc,var(--fg)) 18%,var(--surface))">Fat ${pc(fk)}%</span></div>`;
+  if (n && n > 1) h += `<p class="mnote">Whole recipe (${n} servings): ${ap}${(m.kcal*n).toLocaleString()} kcal · ${ap}${m.protein*n} g protein · ${ap}${m.carbs*n} g carbs · ${ap}${m.fat*n} g fat</p>`;
+  const notes = [];
+  if (m.confidence === "rough") notes.push("Rough estimate: some amounts are missing or vague.");
+  if (m.note) notes.push(m.note);
+  if ((m.excluded||[]).length) notes.push("Not counted: " + m.excluded.join(", ") + ".");
+  if (notes.length) h += `<p class="mnote">${esc(notes.join(" "))}</p>`;
+  if (macrosStale(r) && !preview) h += `<p class="mnote" style="color:var(--fg)">The ingredients changed since this was worked out.</p>${canRun ? `<div style="margin-top:10px">${btn("Recalculate nutrition")}</div>` : ""}`;
+  return h + `</section>`;
+}
 function detailHTML(r, preview){
   const c = colorOf(r), est = new Set(r.estimated||[]), D = S.detail, A = S.add;
   const E = k => est.has(k) ? `<span class="est">est.</span>` : "";
@@ -767,6 +824,7 @@ function detailHTML(r, preview){
     h += `<div class="facts">${fact("Prep", view.time?.prep, "time.prep")}${fact("Cook", view.time?.cook, "time.cook")}${fact("Total", view.time?.total, "time.total")}${(() => { const b = baseServ(view); if (!b || showOrig || preview) return fact("Serves", view.servings, "servings"); const n = D.serv || b;
       return `<div class="fact"><div class="k">Serves${E("servings")}</div><div class="v servings"><button data-act="serv-down" aria-label="Fewer servings" ${n <= 1 ? "disabled" : ""}>−</button><span>${n}</span><button data-act="serv-up" aria-label="More servings">+</button></div></div>`; })()}</div>`;
     if (r.insight && !showOrig) h += `<div class="insight c-${c}">${esc(r.insight)}</div>`;
+    if (!showOrig) h += macrosHTML(r, preview);
     const anyEst = est.size || (view.ingredients||[]).some(g => (g.items||[]).some(i => i.est)) || (view.steps||[]).some(s => s.est);
     if (anyEst) h += `<div class="legend"><span><span class="est" style="margin:0">est.</span> estimated, reconstructed or unclear in the source — not confirmed</span></div>`;
     const ingSmall = showOrig ? "as in the source" : (isImported(r) ? "extracted from the source" : "");
@@ -945,6 +1003,7 @@ async function uploadPhotos(files){
 }
 
 /* ================= AI: structure an entry ================= */
+const MACROS_SHAPE_S = `{"kcal": number, "protein": grams, "carbs": grams, "fat": grams, "confidence": "good"|"rough", "excluded": [string], "note": string|null}`;
 const SCHEMA = `{
   "kind": "recipe" (they cooked it / their own) | "imported" (a recipe saved from somewhere, not yet cooked) | "inspiration" (a photo of a dish, plating idea, flavour combination, restaurant dish, technique or concept — not a full recipe; also their own uncooked ideas),
   "name": string,
@@ -965,6 +1024,7 @@ const SCHEMA = `{
   "source": null, or {"platform": "tiktok"|"instagram"|"pinterest"|"youtube"|"web"|"book"|"screenshot"|"other", "name": string|null (site, book or account name), "creator": string|null (e.g. "@handle", only if visible or given), "url": string|null, "notes": string|null (important details or techniques the creator mentions)},
   "missing": [string] (for saved recipes: what is needed to complete it, e.g. "The caption", "A screenshot of the ingredients", "The video transcript", "Quantities"; empty when complete),
   "tags": 3-8 lowercase-hyphenated useful tags (quick, high-protein, vegetarian, meal-prep, pasta, chicken, comfort-food, summer, spicy …); use "vegetarian","high-protein","quick" (≤30 min),"meal-prep" only when true,
+  "macros": null for inspiration or when there are no ingredients, otherwise the estimated nutrition PER SERVING: ${MACROS_SHAPE_S},
   "emoji": one food emoji that best pictures the finished dish (e.g. "🍝"),
   "plate": null, or, when photos are attached, the circle around the main plate or bowl in the FIRST photo: {"x": centre as % of image width, "y": centre as % of image height, "r": radius as % of image width},
   "idea": null, or for inspiration {"concept": string, "whySaved": string|null, "possibleIngredients": [string], "possiblePrep": string|null, "why": string|null (why the combination could work), "variations": [string], "undecided": [string]}
@@ -974,6 +1034,7 @@ const RULES = `Rules:
 - Never invent ingredients or techniques. Never present an estimate as fact.
 - When a quantity is not given, estimate a realistic metric quantity for the servings (grams for solids, ml for liquids, or tbsp/tsp/pieces where that's how cooks measure) and set "est": true on that item. Leave salt/pepper "to taste". Clearly implied extras (salt, water) get "est": true. Text that is hard to read in a screenshot gets "est": true.
 - When times or servings are not given, estimate them from the method and list each one in "estimated".
+- "macros": per serving, from the final ingredients and servings, with standard food composition values (European labels: carbs without fibre). Leave out to-taste items and serving extras without an amount and list them in "excluded". "confidence" is "rough" when important amounts are missing or vague. "note": the main assumption in one short sentence, or null.
 - Steps you reconstruct get "est": true; steps stated in the source or by the person get "est": false.
 - Never present someone else's recipe as the person's own. Keep the creator and link.
 - Write in the same language the person wrote in.`;
@@ -1062,12 +1123,14 @@ function buildDraft(out, existing){
     thoughts: r.thoughts || null, nextTime: r.nextTime || null, myVersion: r.myVersion || null,
     changes: arr(r.changes), substitutions: arr(r.substitutions),
     source, missing: kind === "recipe" ? [] : arr(r.missing),
-    tags: arr(r.tags).slice(0,8),
+    tags: arr(r.tags).slice(0,8), macros: null,
     idea: kindOf(existing||{}) === "inspiration" ? existing.idea : (r.idea || existing?.idea || null)
   };
   if (A.why && clean.idea && !clean.idea.whySaved) clean.idea.whySaved = A.why;
   const d = existing ? {...existing, ...clean} : {...clean, photos: [], history: [], versions: [], color: pickColor()};
   d.example = false;
+  const nm2 = kind === "inspiration" ? null : normMacros(r.macros);
+  d.macros = nm2 ? withSig(nm2, d) : (existing?.macros || null);
   if (kind === "recipe") delete d.status; else d.status = existing?.status || (kind === "inspiration" ? "idea" : "saved");
   if (A.intent === "my-version" && existing && !existing.original){
     d.original = {name: existing.name, time: existing.time || {}, servings: existing.servings || null, ingredients: existing.ingredients || [], steps: existing.steps || [], notes: existing.source?.notes || null};
@@ -1209,6 +1272,30 @@ Write in the recipe's language. Reply with only JSON: {"servings": string, "time
   render();
 }
 
+/* ================= estimate nutrition ================= */
+const MACROS_SHAPE = `{"kcal": number, "protein": grams, "carbs": grams, "fat": grams, "confidence": "good" | "rough", "excluded": [items left out], "note": string or null}`;
+const MACROS_RULES = `Nutrition ("macros") is PER SERVING, estimated from the ingredient list and servings with standard food composition values (as on European labels: carbs without fibre; raw weights unless stated). Count oil, butter, sauces and toppings that have an amount. Leave out to-taste items and optional or serving extras without an amount, and name them in "excluded". "confidence": "good" when the main amounts are known or clearly estimated, "rough" when important amounts are missing or vague. "note": one short sentence on the main assumption (e.g. "Assumes 15% fat minced beef"), or null.`;
+async function runMacros(r){
+  const D = S.detail; if (!S.sample || D.macBusy) return;
+  D.macBusy = true; D.msg = ""; render();
+  const base = {name: r.name, servings: r.servings || null, ingredients: (r.ingredients||[]).map(g => ({group: g.group, items: (g.items||[]).map(i => i.text)}))};
+  try {
+    const out = await S.sample.json(`You estimate the nutrition of a home cook's recipe. Recipe:\n${JSON.stringify(base)}\n
+${MACROS_RULES} If "servings" is null, assume a sensible number and say so in "note".
+Write "note" and "excluded" in the recipe's language. Reply with only JSON: ${MACROS_SHAPE}`, {modelTier:"default", cache:false});
+    const m = normMacros(out);
+    if (!m) throw {code:"invalid_json"};
+    const fresh = S.recipes.find(x => x.id === r.id) || r;
+    await saveDoc(r.id, {...fresh, macros: withSig(m, fresh)});
+    D.macBusy = false; D.msg = ""; D.err = false;
+  } catch (e){
+    D.macBusy = false; D.err = true;
+    D.msg = e && e.code === "not_granted" ? "Your Google AI key didn't work. Check it in Settings." : e && e.code === "rate_limited" ? "Google's free limit is used up for now. Wait a minute and try again (or tomorrow, if it's the daily limit)." : "Couldn't work out the nutrition. Try again.";
+    if (e && (e.code === "not_granted" || e.code === "sampling_disabled")) S.sample = null;
+  }
+  render();
+}
+
 /* ================= recipe generator ================= */
 async function runGenerate(){
   const A = S.add, text = A.text.trim();
@@ -1254,6 +1341,8 @@ function localSearch(q){
   const ql = q.toLowerCase();
   const words = ql.split(/\W+/).filter(w => w.length > 2 && !["something","with","recipes","recipe","what","have","the","and","for","can","make","show","give","which","did","from","save","saved"].includes(w));
   if (/recent/.test(ql)) return byCooked().slice(0,8).map(r => r.id);
+  if (/protein|eiwit|prote/.test(ql)) return S.recipes.filter(macrosOf).sort((a,b) => b.macros.protein - a.macros.protein).map(r => r.id);
+  if (/calor|kcal|light|licht/.test(ql)) return S.recipes.filter(macrosOf).sort((a,b) => a.macros.kcal - b.macros.kcal).map(r => r.id);
   if (/5 star|five star/.test(ql)) return cookbook().filter(r => r.rating === 5).map(r => r.id);
   const plat = Object.keys(PLATFORM_ONE).find(k => ql.includes(k));
   if (plat && plat !== "other") return S.recipes.filter(r => platformOf(r) === plat).map(r => r.id);
@@ -1270,8 +1359,8 @@ async function runSearch(q){
   s.busy = true; render();
   searchCtl?.abort(); searchCtl = new AbortController();
   try {
-    const idx = S.recipes.map(r => ({id:r.id, name:r.name, kind:kindOf(r), status:statusOf(r), source: platformOf(r) ? {platform: platformOf(r), creator: r.source.creator} : "mine", categories:r.categories, cuisine:r.cuisine, tags:r.tags, time:r.time?.total, rating:r.rating, favorite:isFav(r), ingredients:ingNames(r).slice(0,14), lastCooked:lastCooked(r), timesCooked:(r.history||[]).length, added:(r.createdAt||"").slice(0,10), idea:r.idea?.concept}));
-    const out = await S.sample.json(`You search a person's own recipe collection. Today is ${today()}. Entries are their cooked recipes (kind "recipe"), recipes they saved from elsewhere ("imported") and inspiration. Use ONLY these entries; never suggest outside recipes.\n${JSON.stringify(idx)}\n\nTheir question: "${q}"\n\nReply with only JSON: {"answer": one or two friendly sentences answering directly (mention if nothing fits), "ids": [matching entry ids, best first]}`, {modelTier:"quick", signal: searchCtl.signal});
+    const idx = S.recipes.map(r => ({id:r.id, name:r.name, kind:kindOf(r), status:statusOf(r), source: platformOf(r) ? {platform: platformOf(r), creator: r.source.creator} : "mine", categories:r.categories, cuisine:r.cuisine, tags:r.tags, time:r.time?.total, rating:r.rating, favorite:isFav(r), ingredients:ingNames(r).slice(0,14), lastCooked:lastCooked(r), timesCooked:(r.history||[]).length, added:(r.createdAt||"").slice(0,10), idea:r.idea?.concept, perServing: macrosOf(r) ? {kcal: r.macros.kcal, protein: r.macros.protein, carbs: r.macros.carbs, fat: r.macros.fat} : undefined}));
+    const out = await S.sample.json(`You search a person's own recipe collection. Today is ${today()}. Entries are their cooked recipes (kind "recipe"), recipes they saved from elsewhere ("imported") and inspiration. Use ONLY these entries; never suggest outside recipes. "perServing" is estimated nutrition (kcal and grams); use it for questions about protein, calories, carbs or fat, and say the numbers are estimates.\n${JSON.stringify(idx)}\n\nTheir question: "${q}"\n\nReply with only JSON: {"answer": one or two friendly sentences answering directly (mention if nothing fits), "ids": [matching entry ids, best first]}`, {modelTier:"quick", signal: searchCtl.signal});
     s.answer = typeof out?.answer === "string" ? out.answer : "";
     s.ids = Array.isArray(out?.ids) ? out.ids.filter(id => S.recipes.some(r => r.id === id)) : localSearch(q);
   } catch (e){
@@ -1347,6 +1436,7 @@ app.addEventListener("click", async e => {
     case "serv-up": D.serv = (D.serv || baseServ(r)) + 1; render(); break;
     case "serv-down": D.serv = Math.max(1, (D.serv || baseServ(r)) - 1); render(); break;
     case "estimate": runEstimate(r); break;
+    case "macros": runMacros(r); break;
     case "find-plate": runPlate(r); break;
     case "show-mine": D.showOriginal = false; render(); break;
     case "show-orig": D.showOriginal = true; render(); break;
