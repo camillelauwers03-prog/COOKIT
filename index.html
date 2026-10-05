@@ -954,7 +954,7 @@ Use "kind":"imported" if there is an actual recipe (ingredients and/or method), 
 function failAdd(e){
   const A = S.add; if (!A) return;
   A.status = "form";
-  A.err = ({not_granted:"Your Google AI key didn't work. Check it in Settings, or tap Save again to keep this as written.", rate_limited:"You've hit Google's free limit for now. Try again in a minute.", invalid_json:"The write-up came back incomplete. Try again, or add a little more detail.", refused:"The AI couldn't write this one up. Try rephrasing."}[e && e.code]) || "Something went wrong writing this up. Try again.";
+  A.err = ({busy:"Google's AI is very busy right now. Try again in a minute.", not_granted:"Your Google AI key didn't work. Check it in Settings, or tap Save again to keep this as written.", rate_limited:"Google's free limit is used up for now. Wait a minute and try again (or tomorrow, if it's the daily limit).", invalid_json:"The write-up came back incomplete. Try again, or add a little more detail.", refused:"The AI couldn't write this one up. Try rephrasing."}[e && e.code]) || "Something went wrong writing this up. Try again." + (e && e.message && e.code !== "not_granted" ? " (" + String(e.message).slice(0, 140) + ")" : "");
   if (e && (e.code === "not_granted" || e.code === "sampling_disabled")) S.sample = null;
   render();
 }
@@ -1080,7 +1080,7 @@ async function runPlate(r){
     await saveDoc(r.id, {...fresh, plate: {x: Math.min(100, Math.max(0, +p.x)), y: Math.min(100, Math.max(0, +p.y)), r: Math.min(60, Math.max(8, +p.r))}});
     D.msg = ""; D.err = false;
   } catch (e){
-    D.err = true; D.msg = e && e.code === "rate_limited" ? "You've hit Google's free limit for now. Try again in a minute." : "Couldn't find the plate in this photo.";
+    D.err = true; D.msg = e && e.code === "rate_limited" ? "Google's free limit is used up for now. Wait a minute and try again (or tomorrow, if it's the daily limit)." : "Couldn't find the plate in this photo.";
     if (e && (e.code === "not_granted" || e.code === "sampling_disabled")) S.sample = null;
   }
   D.plateBusy = false; render();
@@ -1116,7 +1116,7 @@ Write in the recipe's language. Reply with only JSON: {"servings": string, "time
     D.estBusy = false; D.serv = null; D.msg = "Added estimated times and quantities, marked est."; D.err = false;
   } catch (e){
     D.estBusy = false; D.err = true;
-    D.msg = e && e.code === "not_granted" ? "Your Google AI key didn't work. Check it in Settings." : e && e.code === "rate_limited" ? "You've hit Google's free limit for now. Try again in a minute." : "Couldn't estimate this one. Try again.";
+    D.msg = e && e.code === "not_granted" ? "Your Google AI key didn't work. Check it in Settings." : e && e.code === "rate_limited" ? "Google's free limit is used up for now. Wait a minute and try again (or tomorrow, if it's the daily limit)." : "Couldn't estimate this one. Try again.";
     if (e && (e.code === "not_granted" || e.code === "sampling_disabled")) S.sample = null;
   }
   render();
@@ -1156,7 +1156,7 @@ Reply with only JSON: {"recipe": ${SCHEMA}}`;
   } catch (e){
     if (!S.add) return;
     A.status = "form";
-    A.err = ({not_granted:"Your Google AI key didn't work. Check it in Settings.", rate_limited:"You've hit Google's free limit for now. Try again in a minute.", invalid_json:"The recipe came back incomplete. Try again.", refused:"The AI couldn't create this one. Try rephrasing.", image_rejected:"That photo couldn't be read. Try a different one."}[e && e.code]) || "Something went wrong creating the recipe. Try again.";
+    A.err = ({busy:"Google's AI is very busy right now. Try again in a minute.", not_granted:"Your Google AI key didn't work. Check it in Settings.", rate_limited:"Google's free limit is used up for now. Wait a minute and try again (or tomorrow, if it's the daily limit).", invalid_json:"The recipe came back incomplete. Try again.", refused:"The AI couldn't create this one. Try rephrasing.", image_rejected:"That photo couldn't be read. Try a different one."}[e && e.code]) || "Something went wrong creating the recipe. Try again." + (e && e.message && e.code !== "not_granted" ? " (" + String(e.message).slice(0, 140) + ")" : "");
     if (e && (e.code === "not_granted" || e.code === "sampling_disabled")) S.sample = null;
     render();
   }
@@ -1448,32 +1448,49 @@ function thinkingFor(model, level){
   if (/gemini-[3-9]/.test(model)) return { thinkingLevel: level === "none" ? "minimal" : "low" };
   return null;
 }
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function askGemini(prompt, images, opts = {}){
-  const key = lsGet(KEY_K);
-  const model = (opts.fast && lsGet(LITE_K)) || lsGet(MODEL_K);
-  if (!key || !model) throw { code: "not_granted" };
+  const key = lsGet(KEY_K), main = lsGet(MODEL_K), lite = lsGet(LITE_K);
+  const first = (opts.fast && lite) || main;
+  if (!key || !first) throw { code: "not_granted" };
   const imgs = images ? await Promise.all([...images].slice(0, 4).map(async b => blobToB64(await forAI(b)))) : [];
-  const thinking = thinkingFor(model, opts.fast ? "none" : (opts.think || "none"));
-  const call = withThinking => fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent", {
+  // Google's free models are often briefly busy: try again, then fall back to the other Flash model.
+  const backup = first === main ? lite : main;
+  const plan = [first, first, ...(backup && backup !== first ? [backup] : [])];
+  let lastErr = { code: "upstream_error" };
+  for (let i = 0; i < plan.length; i++){
+    const model = plan[i];
+    if (i > 0) await sleep(i === 1 ? 1200 : 400);
+    const thinking = thinkingFor(model, opts.fast ? "none" : (opts.think || "none"));
+    const call = withThinking => fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent", {
       method: "POST", headers: { "content-type": "application/json", "x-goog-api-key": key },
       body: JSON.stringify({ contents: [{ role: "user", parts: [...imgs.map(d => ({ inline_data: { mime_type: "image/jpeg", data: d } })), { text: prompt }] }],
-        generationConfig: { responseMimeType: "application/json", maxOutputTokens: 16384, temperature: 0.5, ...(withThinking && thinking ? { thinkingConfig: thinking } : {}) } })
+        generationConfig: { responseMimeType: "application/json", maxOutputTokens: 24576, temperature: 0.5, ...(withThinking && thinking ? { thinkingConfig: thinking } : {}) } })
     });
-  let res;
-  try {
-    res = await call(true);
-    if (res.status === 400 && thinking) res = await call(false);   // a model that doesn't take this setting: ask again without it
-  } catch (e) { throw { code: "upstream_error" }; }
-  if (!res.ok){
-    let msg = ""; try { msg = (await res.json()).error?.message || ""; } catch (e) {}
-    throw { code: res.status === 429 ? "rate_limited" : (res.status === 403 || (res.status === 400 && /api key/i.test(msg))) ? "not_granted" : "upstream_error", message: msg };
+    let res;
+    try {
+      res = await call(true);
+      if (res.status === 400 && thinking) res = await call(false);   // a model that doesn't take this setting: ask again without it
+    } catch (e) { lastErr = { code: "upstream_error", message: "No connection to Google" }; continue; }
+    if (!res.ok){
+      let msg = ""; try { msg = (await res.json()).error?.message || ""; } catch (e) {}
+      if (res.status === 401 || res.status === 403 || (res.status === 400 && /api key/i.test(msg))) throw { code: "not_granted", message: msg };
+      if (res.status === 429){
+        lastErr = { code: "rate_limited", message: msg };
+        if (/per ?day|daily/i.test(msg) && model === first && backup && backup !== first){ i = plan.length - 2; }   // daily limit: go straight to the other model
+        continue;
+      }
+      lastErr = res.status >= 500 ? { code: "busy" } : { code: "upstream_error", message: msg };
+      continue;
+    }
+    const j = await res.json(), c = j.candidates?.[0];
+    if (!c){ if (j.promptFeedback?.blockReason) throw { code: "refused" }; lastErr = { code: "upstream_error", message: "Empty answer" }; continue; }
+    if (c.finishReason === "SAFETY" || c.finishReason === "PROHIBITED_CONTENT") throw { code: "refused" };
+    const text = (c.content?.parts || []).filter(p => p.text && !p.thought).map(p => p.text).join("");
+    if (!text){ lastErr = { code: "upstream_error", message: "Empty answer" }; continue; }
+    try { return parseJSON(text); } catch (e) { lastErr = { code: "invalid_json" }; continue; }
   }
-  const j = await res.json(), c = j.candidates?.[0];
-  if (!c) throw { code: j.promptFeedback?.blockReason ? "refused" : "upstream_error" };
-  if (c.finishReason === "MAX_TOKENS") throw { code: "invalid_json" };
-  const text = (c.content?.parts || []).filter(p => p.text && !p.thought).map(p => p.text).join("");
-  if (!text) throw { code: "upstream_error" };
-  return parseJSON(text);
+  throw lastErr;
 }
 function makeSample(){
   if (!lsGet(KEY_K) || !lsGet(MODEL_K)) return null;
