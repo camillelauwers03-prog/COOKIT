@@ -901,18 +901,10 @@ async function runAdd(){
   if (!S.sample) return saveRaw();
   const images = S.imgOK && A.files.length ? A.files.slice(0, 4) : undefined;
   try {
-    if (!A.matchId && !A.dupeAction && S.recipes.length && A.mode !== "idea"){
-      A.progress = "Checking whether you already have this…"; render();
-      const idx = S.recipes.map(r => ({id:r.id, name:r.name, kind:kindOf(r), source: r.source?.url || r.source?.creator || undefined, ingredients: ingNames(r).slice(0,10)}));
-      const c = await S.sample.json(`You keep a personal recipe collection free of duplicates. Collection index:\n${JSON.stringify(idx)}\n\nNew entry${images ? " (images attached)" : ""}:\nLink: ${url || "none"}\nText: """${text || "(none)"}"""\n\nIs this very likely the SAME dish or recipe as one entry (same link, or clearly the same recipe — not merely a similar dish)? Reply with only JSON: {"matchId": string or null}`, {modelTier:"quick", images, cache:false});
-      if (c && typeof c.matchId === "string" && S.recipes.some(r => r.id === c.matchId)){
-        A.dupeId = c.matchId; A.status = "dupe"; render(); document.getElementById("ov")?.scrollTo(0,0); return;
-      }
-    }
-    await buildEntry(images);
+    await buildEntry(images, !A.matchId && !A.dupeAction && S.recipes.length && A.mode !== "idea");
   } catch (e){ failAdd(e); }
 }
-async function buildEntry(images){
+async function buildEntry(images, checkDupes){
   const A = S.add, text = A.text.trim(), url = (A.url||"").trim();
   const merging = A.matchId && A.dupeAction !== "keep" && A.dupeAction !== "replace";
   const existing = merging ? S.recipes.find(r => r.id === A.matchId) : null;
@@ -939,15 +931,22 @@ Use "kind":"imported" if there is an actual recipe (ingredients and/or method), 
       ? `They are adding a dish they have COOKED${images ? " (their photos are attached)" : ""}. Use "kind":"recipe" and fill "cooked". If they mention it came from somewhere, fill "source".\n`
       : `They are adding a recipe they have NOT cooked yet${images ? " (photos are attached: a photo of the dish or of a recipe to read)" : ""}. Use "kind":"imported", "cooked": null, rating/thoughts/nextTime null. If it came from somewhere, fill "source"; otherwise "source": null.\n`;
   }
-  prompt += `\nWhat they wrote:\n"""${text || "(nothing — use the link and images)"}"""\n\n${RULES}\n\nReply with only JSON of this shape:\n{
+  if (checkDupes){
+    const idx = S.recipes.map(r => ({id:r.id, name:r.name, ingredients: ingNames(r).slice(0,8)}));
+    prompt += `\nTheir collection already holds (id, name, main ingredients):\n${JSON.stringify(idx)}\nIf this is very likely the SAME recipe as one of these (clearly the same dish, not merely similar), put its id in "matchId"; otherwise "matchId": null. Write the new entry either way.\n`;
+  }
+  prompt += `\nWhat they wrote:\n"""${text || "(nothing — use the link and images)"}"""\n\n${RULES}\n\nReply with only JSON of this shape:\n{${checkDupes ? `\n  "matchId": string or null,` : ""}
   "recipe": ${SCHEMA},
   "cooked": {"date": "YYYY-MM-DD", "rating": number|null, "note": string} or null  (only if they say they made it; date = today unless given),
   "versionChange": {"summary": string, "changes": [string]} or null  (only for an update that changes a recipe they already cooked),
   "insight": string or null  (a short personal discovery across versions, only when the evidence supports it)
 }`;
-  const out = await S.sample.json(prompt, {images, cache:false});
+  const out = await S.sample.json(prompt, {images, cache:false, think:"some"});
   if (!out || !out.recipe || !out.recipe.name) throw {code:"invalid_json"};
   A.err = "";
+  if (checkDupes && typeof out.matchId === "string" && S.recipes.some(r => r.id === out.matchId)){
+    A.dupeId = out.matchId; A.pendingOut = out; A.status = "dupe"; render(); document.getElementById("ov")?.scrollTo(0,0); return;
+  }
   A.draft = buildDraft(out, existing);
   A.status = "preview"; render();
   document.getElementById("ov")?.scrollTo(0,0);
@@ -1144,7 +1143,7 @@ Give real quantities and clear numbered steps. Prefer ingredients they named; ke
 
 Reply with only JSON: {"recipe": ${SCHEMA}}`;
   try {
-    const out = await S.sample.json(prompt, {images, cache:false});
+    const out = await S.sample.json(prompt, {images, cache:false, think:"some"});
     if (!S.add) return;
     if (!out || !out.recipe || !out.recipe.name) throw {code:"invalid_json"};
     const r = out.recipe;
@@ -1212,6 +1211,7 @@ app.addEventListener("click", async e => {
   if (t.dataset.mode){ S.add.mode = t.dataset.mode; render(); return; }
   if (t.dataset.dupe){
     const A = S.add; A.dupeAction = t.dataset.dupe; A.matchId = A.dupeId;
+    if ((A.dupeAction === "keep" || A.dupeAction === "replace") && A.pendingOut){ A.draft = buildDraft(A.pendingOut, null); A.pendingOut = null; A.status = "preview"; render(); document.getElementById("ov")?.scrollTo(0,0); return; }
     try { await buildEntry(S.imgOK && A.files.length ? A.files.slice(0,4) : undefined); } catch(err){ failAdd(err); }
     return;
   }
@@ -1427,7 +1427,7 @@ const blobToB64 = blob => new Promise((res, rej) => { const r = new FileReader()
 async function forAI(blob){
   try {
     const bmp = await createImageBitmap(blob);
-    const k = Math.min(1, 1280 / Math.max(bmp.width, bmp.height));
+    const k = Math.min(1, 1024 / Math.max(bmp.width, bmp.height));
     const c = document.createElement("canvas"); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
     c.getContext("2d").drawImage(bmp, 0, 0, c.width, c.height);
     return await new Promise(r => c.toBlob(b => r(b || blob), "image/jpeg", .82));
@@ -1440,17 +1440,29 @@ function parseJSON(t){
   if (a >= 0 && z > a) { try { return JSON.parse(t.slice(a, z + 1)); } catch (e) {} }
   throw { code: "invalid_json" };
 }
-async function askGemini(prompt, images){
-  const key = lsGet(KEY_K), model = lsGet(MODEL_K);
+const LITE_K = "cookit.modelLite";
+function pickLite(models){ const l = models.find(n => /lite/.test(n) && !/preview|exp/.test(n)) || models.find(n => /lite/.test(n)); if (l) lsSet(LITE_K, l); }
+function thinkingFor(model, level){
+  // "none" for quick lookups, "some" for writing recipes up
+  if (/gemini-2\.5/.test(model)) return { thinkingBudget: level === "none" ? 0 : 1024 };
+  if (/gemini-[3-9]/.test(model)) return { thinkingLevel: level === "none" ? "minimal" : "low" };
+  return null;
+}
+async function askGemini(prompt, images, opts = {}){
+  const key = lsGet(KEY_K);
+  const model = (opts.fast && lsGet(LITE_K)) || lsGet(MODEL_K);
   if (!key || !model) throw { code: "not_granted" };
   const imgs = images ? await Promise.all([...images].slice(0, 4).map(async b => blobToB64(await forAI(b)))) : [];
-  let res;
-  try {
-    res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent", {
+  const thinking = thinkingFor(model, opts.fast ? "none" : (opts.think || "none"));
+  const call = withThinking => fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent", {
       method: "POST", headers: { "content-type": "application/json", "x-goog-api-key": key },
       body: JSON.stringify({ contents: [{ role: "user", parts: [...imgs.map(d => ({ inline_data: { mime_type: "image/jpeg", data: d } })), { text: prompt }] }],
-        generationConfig: { responseMimeType: "application/json", maxOutputTokens: 16384, temperature: 0.5 } })
+        generationConfig: { responseMimeType: "application/json", maxOutputTokens: 16384, temperature: 0.5, ...(withThinking && thinking ? { thinkingConfig: thinking } : {}) } })
     });
+  let res;
+  try {
+    res = await call(true);
+    if (res.status === 400 && thinking) res = await call(false);   // a model that doesn't take this setting: ask again without it
   } catch (e) { throw { code: "upstream_error" }; }
   if (!res.ok){
     let msg = ""; try { msg = (await res.json()).error?.message || ""; } catch (e) {}
@@ -1466,7 +1478,7 @@ async function askGemini(prompt, images){
 function makeSample(){
   if (!lsGet(KEY_K) || !lsGet(MODEL_K)) return null;
   const f = async (p, o) => ({ text: JSON.stringify(await askGemini(p, o && o.images)), truncated: false });
-  f.json = (p, o) => askGemini(p, o && o.images);
+  f.json = (p, o) => askGemini(p, o && o.images, { fast: !!(o && o.modelTier === "quick"), think: o && o.think });
   f.limits = async () => ({ images: { maxCount: 4 } });
   return f;
 }
@@ -1632,7 +1644,7 @@ async function saveKey(){
   try {
     const models = await listGeminiModels(k);
     if (!models.length) throw { code: "no_model" };
-    lsSet(KEY_K, k); lsSet(MODEL_K, models[0]);
+    lsSet(KEY_K, k); lsSet(MODEL_K, models[0]); pickLite(models);
     S.sample = makeSample(); S.imgOK = true;
     st.msg = "Key saved. The AI features are ready."; st.err = false;
   } catch (e) {
@@ -1678,6 +1690,7 @@ render();
 (async () => {
   S.canWrite = true; S.db = localDB; S.assets = localAssets;
   S.sample = makeSample(); S.imgOK = !!S.sample;
+  if (S.sample && !lsGet(LITE_K)) listGeminiModels(lsGet(KEY_K)).then(pickLite).catch(() => {});
   try { await loadBlobs(); } catch (e) {}
   S.db.collection("recipes").onSnapshot(snap => {
     S.recipes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
