@@ -31,8 +31,18 @@ img{max-width:100%}
   --k-oxblood:#4A1012; --k-oxblood-ink:#F59BE0;
   --k-lime:#D7F26B; --k-lime-ink:#173F2F;
   --k-mustard:#F7CF4A; --k-mustard-ink:#173F2F;
+  --k-ocean:#0D5072; --k-ocean-ink:#FAE170;
   --k-pink:#F3A2DF; --k-pink-ink:#4A1012;
   --k-forest:#2E6A53; --k-forest-ink:#E8F6C6;
+  --k-sunflower:#FBBA16; --k-sunflower-ink:#00492C;
+  --k-navy:#1E4380; --k-navy-ink:#E2B2B4;
+  --k-sky:#9BCCD0; --k-sky-ink:#E22028;
+  --k-pine:#00492C; --k-pine-ink:#FBBA16;
+  --k-blush:#E2B2B4; --k-blush-ink:#1E4380;
+  --k-cherry:#E22028; --k-cherry-ink:#C9E6E8;
+  --k-mint:#B1D8B8; --k-mint-ink:#D9411E;
+  --k-golden:#906713; --k-golden-ink:#FFDB58;
+  --k-butter:#FAE170; --k-butter-ink:#C2360D;
   --f-display:"Fraunces", "Cooper Black", Georgia, serif;
   --f-cond:"Anton", "Impact", "Arial Narrow", sans-serif;
   --f-body:"Bricolage Grotesque", ui-sans-serif, system-ui, -apple-system, sans-serif;
@@ -96,8 +106,9 @@ button{cursor:pointer;background:none;border:0;padding:0}
 .card .name{font-family:var(--f-display);font-weight:900;font-variation-settings:"SOFT" 100,"WONK" 1;font-size:clamp(22px,5.4vw,34px);line-height:.95;letter-spacing:-.01em;margin:4px 2px 0;text-wrap:balance;overflow-wrap:anywhere}
 .card .mini{display:flex;gap:8px;align-items:center;font-size:13px;opacity:.85;margin:0 2px}
 .c-tomato{--cbg:var(--k-tomato);--cfg:var(--k-tomato-ink)} .c-oxblood{--cbg:var(--k-oxblood);--cfg:var(--k-oxblood-ink)}
-.c-lime{--cbg:var(--k-lime);--cfg:var(--k-lime-ink)} .c-mustard{--cbg:var(--k-mustard);--cfg:var(--k-mustard-ink)}
+.c-lime{--cbg:var(--k-lime);--cfg:var(--k-lime-ink)} .c-mustard{--cbg:var(--k-mustard);--cfg:var(--k-mustard-ink)} .c-ocean{--cbg:var(--k-ocean);--cfg:var(--k-ocean-ink)}
 .c-pink{--cbg:var(--k-pink);--cfg:var(--k-pink-ink)} .c-forest{--cbg:var(--k-forest);--cfg:var(--k-forest-ink)}
+.c-sunflower{--cbg:var(--k-sunflower);--cfg:var(--k-sunflower-ink)} .c-navy{--cbg:var(--k-navy);--cfg:var(--k-navy-ink)} .c-sky{--cbg:var(--k-sky);--cfg:var(--k-sky-ink)} .c-pine{--cbg:var(--k-pine);--cfg:var(--k-pine-ink)} .c-blush{--cbg:var(--k-blush);--cfg:var(--k-blush-ink)} .c-cherry{--cbg:var(--k-cherry);--cfg:var(--k-cherry-ink)} .c-mint{--cbg:var(--k-mint);--cfg:var(--k-mint-ink)} .c-golden{--cbg:var(--k-golden);--cfg:var(--k-golden-ink)} .c-butter{--cbg:var(--k-butter);--cfg:var(--k-butter-ink)}
 
 /* plate motif when there is no photo */
 /* studio shot when there is no photo: a spotlit dish on a dark, card-tinted backdrop */
@@ -343,7 +354,7 @@ button{cursor:pointer;background:none;border:0;padding:0}
 (() => {
 "use strict";
 /* ================= constants ================= */
-const COLORS = ["tomato","oxblood","lime","mustard","pink","forest"];
+const COLORS = ["tomato","sunflower","navy","lime","oxblood","sky","pine","blush","ocean","cherry","mint","golden","pink","butter","forest"];
 const FILTERS = ["All","Breakfast","Lunch","Dinner","Snack","Dessert","Drinks","Vegetarian","High protein","Quick","Meal prep"];
 const PLATFORMS = {tiktok:"TikTok", instagram:"Instagram", pinterest:"Pinterest", youtube:"YouTube", web:"Websites", book:"Books", screenshot:"Screenshots", other:"Elsewhere", claude:"Recipe generator", own:"My own recipes", ideas:"My own ideas"};
 const PLATFORM_ONE = {tiktok:"TikTok", instagram:"Instagram", pinterest:"Pinterest", youtube:"YouTube", web:"the web", book:"a book", screenshot:"a screenshot", other:"elsewhere", claude:"the recipe generator"};
@@ -367,6 +378,29 @@ const today = () => { const d = new Date(); return d.getFullYear()+"-"+String(d.
 const fmtDate = s => { if (!s) return ""; const d = new Date(s.length === 10 ? s+"T12:00:00" : s); return isNaN(d) ? s : d.toLocaleDateString(undefined,{month:"long",day:"numeric",year:"numeric"}); };
 const daysAgo = s => { if (!s) return Infinity; return Math.floor((Date.now() - new Date(s.length===10?s+"T12:00:00":s))/864e5); };
 const hash = s => { let h = 0; for (const c of String(s)) h = (h*31 + c.charCodeAt(0))|0; return Math.abs(h); };
+function pickColor(exceptId){
+  const used = S.recipes.filter(r => r.id !== exceptId).sort((a,b) => (a.createdAt||"").localeCompare(b.createdAt||"")).map(r => r.color);
+  const lastUse = c => used.lastIndexOf(c);
+  return COLORS.slice().sort((a, b) => lastUse(a) - lastUse(b))[0];
+}
+/* one-off tidy: walk the cookbook oldest-first and change any colour that already appeared in the previous 14 recipes */
+let colorsChecked = false;
+async function spreadColors(){
+  if (colorsChecked || !S.db) return; colorsChecked = true;
+  const list = [...S.recipes].sort((a,b) => (a.createdAt||"").localeCompare(b.createdAt||""));
+  const seq = [], fixes = [];
+  for (const r of list){
+    const recent = seq.slice(-(COLORS.length - 1));
+    let c = COLORS.includes(r.color) ? r.color : null;
+    if (!c || recent.includes(c)){
+      const lastUse = x => seq.lastIndexOf(x);
+      c = COLORS.filter(x => !recent.includes(x)).sort((a, b) => lastUse(a) - lastUse(b))[0] || COLORS[0];
+      fixes.push([r, c]);
+    }
+    seq.push(c);
+  }
+  for (const [r, c] of fixes){ try { await S.db.collection("recipes").doc(r.id).set({...stripLocal(r), color: c}); } catch (e) {} }
+}
 const colorOf = r => COLORS.includes(r.color) ? r.color : COLORS[hash(r.id || r.name) % COLORS.length];
 const BLOBURL = {};
 const img = id => BLOBURL[id] || "";
@@ -582,7 +616,7 @@ function addPanelHTML(){
 }
 function viewRecipes(){
   const all = S.recipes.filter(r => statusOf(r) !== "notforme");
-  const list = all.filter(r => matchesFilter(r, S.filter)).sort((a,b) => (a.name||"").localeCompare(b.name||""));
+  const list = all.filter(r => matchesFilter(r, S.filter)).sort((a,b) => (b.createdAt||"").localeCompare(a.createdAt||""));
   const extra = [...new Set(cookbook().flatMap(r => r.tags||[]))].filter(t => !FILTERS.some(f => slug(f) === t)).sort().slice(0,14);
   const chips = [...FILTERS, ...extra.map(t => t.replace(/-/g," "))];
   const fbtn = `<button class="pill-btn ${S.filter !== "All" ? "solid" : ""}" data-act="toggle-filters" aria-expanded="${!!S.showFilters}">${S.filter !== "All" ? esc(S.filter) : "Filter"}</button>`;
@@ -979,7 +1013,7 @@ function buildDraft(out, existing){
     idea: kindOf(existing||{}) === "inspiration" ? existing.idea : (r.idea || existing?.idea || null)
   };
   if (A.why && clean.idea && !clean.idea.whySaved) clean.idea.whySaved = A.why;
-  const d = existing ? {...existing, ...clean} : {...clean, photos: [], history: [], versions: [], color: COLORS[Math.floor(Math.random()*COLORS.length)]};
+  const d = existing ? {...existing, ...clean} : {...clean, photos: [], history: [], versions: [], color: pickColor()};
   d.example = false;
   if (kind === "recipe") delete d.status; else d.status = existing?.status || (kind === "inspiration" ? "idea" : "saved");
   if (A.intent === "my-version" && existing && !existing.original){
@@ -1056,7 +1090,7 @@ async function saveRaw(){
       const id = S.db.collection("recipes").doc().id;
       const p = url ? detectPlatform(url) : null;
       const first = (t.split(/\n|\. /)[0] || (p ? "Saved from " + PLATFORM_ONE[p] : "Untitled dish")).slice(0,70);
-      const d = { kind: A.mode === "import" || (A.mode === "cooked" && !A.made) ? "imported" : A.mode === "idea" ? "inspiration" : "recipe", name: first, description: "", tags: [], history: [], versions: [], color: COLORS[hash(id)%COLORS.length], createdAt: new Date().toISOString(),
+      const d = { kind: A.mode === "import" || (A.mode === "cooked" && !A.made) ? "imported" : A.mode === "idea" ? "inspiration" : "recipe", name: first, description: "", tags: [], history: [], versions: [], color: pickColor(), createdAt: new Date().toISOString(),
         photos: asShots ? [] : ids, thoughts: A.mode === "cooked" ? t : null,
         idea: A.mode === "idea" ? {concept: t, whySaved: A.why || null} : null,
         source: A.mode === "import" ? {platform: p || "screenshot", url: url || null, creator: url ? handleFromUrl(url) : null, notes: t || null, screenshots: ids} : null,
@@ -1585,6 +1619,7 @@ async function runSync(manual){
       }
       if (got) render();
       SYNC.last = new Date().toISOString(); lsSet("cookit.lastSync", SYNC.last);
+      colorsChecked = false; setTimeout(spreadColors, 300);
       break;
     }
   } catch (e) {
@@ -1712,6 +1747,7 @@ render();
   S.db.collection("recipes").onSnapshot(snap => {
     S.recipes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     S.loaded = true; render();
+    if (!SYNC.busy) setTimeout(spreadColors, 800);
   }, () => { S.noStore = true; S.storeErr = "COOKIT couldn't open its storage on this phone. Close and reopen the app."; render(); });
   try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {}
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
