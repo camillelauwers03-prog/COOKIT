@@ -210,6 +210,24 @@ button{cursor:pointer;background:none;border:0;padding:0}
 .answer{font-family:var(--f-display);font-size:22px;line-height:1.3;font-variation-settings:"SOFT" 100;margin:6px 0 24px;max-width:46ch}
 
 /* ---------- sheet / detail overlays ---------- */
+.c-fu-yellow{--cread:#00492C} .c-fu-green{--cread:#FBBA16} .c-fu-sky{--cread:#9E161C} .c-fu-red{--cread:#FFFFFF} .c-fu-blush{--cread:#1E4380} .c-fu-navy{--cread:#E2B2B4} .c-fu-mint{--cread:#92331B} .c-fu-orange{--cread:#121612} .c-cc-blood{--cread:#FF97D0} .c-cc-magenta{--cread:#115203} .c-cc-lincoln{--cread:#C3F380} .c-cc-lime{--cread:#7523B4} .c-cc-grape{--cread:#FAE170} .c-cc-sinopia{--cread:#B23610} .c-cc-rose{--cread:#FFFCFC} .c-cc-baby{--cread:#704F0F} .c-cc-golden{--cread:#FFF4CD} .c-cc-cerulean{--cread:#7FEEFF}
+/* the recipe page wears its card's colours: background, text, boxes, lines and buttons */
+.dd{--bg:var(--cbg);--fg:var(--cfg);--muted:color-mix(in srgb,var(--cfg) 72%,var(--cbg));--line:color-mix(in srgb,var(--cfg) 24%,var(--cbg));
+  --surface:color-mix(in srgb,var(--cfg) 9%,var(--cbg));--chip:color-mix(in srgb,var(--cfg) 15%,var(--cbg));--accent:var(--cfg);--accent-ink:var(--cbg);--est:var(--cfg);
+  background:var(--bg);color:var(--fg);min-height:100vh}
+.dd .d-hero.has-photo .d-chip{background:var(--cbg);color:var(--cfg)}
+.dd .fact,.dd .note,.dd .ver,.dd .panel{background:var(--surface);border-color:var(--line)}
+.dd .steps li::before{color:var(--cfg)}
+.dd .timeline li::before{background:var(--cfg)}
+.dd .insight{background:var(--cfg);color:var(--cbg)}
+.dd .pill-btn{border-color:var(--cfg);color:var(--cfg)}
+.dd .pill-btn.accent,.dd .pill-btn.solid{background:var(--cfg);border-color:var(--cfg);color:var(--cbg)}
+.dd .tag{border-color:var(--line);color:var(--fg)}
+.dd .field input,.dd .field textarea{background:var(--surface);border-color:var(--line);color:var(--fg)}
+.dd .err{color:var(--fg);font-weight:700}
+.dd .d-body{color:var(--cread,var(--cfg))}
+.dd .d-body h3,.dd .d-herotitle,.dd .stars,.dd .steps li::before{color:var(--cfg)}
+.dd .d-body .muted,.dd .legend,.dd .fact .k,.dd .eyebrow{color:var(--cread,var(--cfg));opacity:.8}
 .overlay{position:fixed;inset:0;z-index:40;background:var(--bg);overflow-y:auto;overscroll-behavior:contain;animation:rise .38s cubic-bezier(.2,.8,.2,1)}
 @keyframes rise{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
 @media (prefers-reduced-motion:reduce){.overlay{animation:none}.card,.card .pic img{transition:none}}
@@ -714,7 +732,7 @@ function detailHTML(r, preview){
   const view = showOrig ? r.original : r;
   const fact = (k, v, key) => `<div class="fact"><div class="k">${k}</div><div class="v">${v ? esc(v) + (showOrig ? "" : E(key)) : "<span class='muted'>—</span>"}</div></div>`;
   const chip = [(r.categories||[])[0] || r.cuisine, view.time?.total].filter(Boolean).join(" · ");
-  let h = `<div class="d-hero c-${c} ${heroSrc ? "has-photo" : ""}">
+  let h = `<div class="dd c-${c}"><div class="d-hero c-${c} ${heroSrc ? "has-photo" : ""}">
     ${heroSrc ? `<img class="d-heroimg" src="${esc(heroSrc)}" alt="${esc(r.name)}">` : `<span class="d-heroemoji" aria-hidden="true">${emojiOf(r)}</span>`}
     <div class="d-bar">
       <button class="round" data-act="${preview ? "back-to-form" : "close"}" aria-label="Back">${ICON.back}</button>
@@ -806,7 +824,7 @@ function detailHTML(r, preview){
   if (r.createdAt) meta.push((inCookbook(r) ? "Added " : "Saved ") + fmtDate(r.createdAt));
   if (r.updatedAt && r.updatedAt !== r.createdAt) meta.push("updated " + fmtDate(r.updatedAt));
   if (meta.length && !preview) h += `<p class="muted" style="font-size:13px;margin:0">${esc(meta.join(", "))}</p>`;
-  return h + `</div>`;
+  return h + `</div></div>`;
 }
 
 /* ================= add sheet ================= */
